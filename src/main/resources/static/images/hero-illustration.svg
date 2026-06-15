@@ -1,0 +1,39 @@
+<svg viewBox="0 0 560 220" xmlns="http://www.w3.org/2000/svg" width="100%" style="max-width:560px;">
+    <!-- ground / lawn -->
+    <rect x="0" y="160" width="560" height="60" rx="0" fill="#3d6b45" opacity="0.25"/>
+
+    <!-- house suggestion -->
+    <rect x="30" y="80" width="120" height="80" rx="4" fill="#0f766e" opacity="0.08"/>
+    <polygon points="30,80 90,40 150,80" fill="#0f766e" opacity="0.08"/>
+
+    <!-- SOFA on lawn -->
+    <rect x="190" y="128" width="110" height="32" rx="6" fill="#0d9488" opacity="0.35"/>
+    <rect x="196" y="116" width="98" height="22" rx="5" fill="#0d9488" opacity="0.55"/>
+    <rect x="190" y="116" width="14" height="28" rx="3" fill="#0d9488" opacity="0.45"/>
+    <rect x="276" y="116" width="24" height="28" rx="3" fill="#0d9488" opacity="0.45"/>
+    <rect x="198" y="158" width="10" height="8" rx="2" fill="#0d9488" opacity="0.3"/>
+    <rect x="282" y="158" width="10" height="8" rx="2" fill="#0d9488" opacity="0.3"/>
+
+    <!-- FREE sign -->
+    <rect x="225" y="100" width="42" height="16" rx="3" fill="#c05c2e"/>
+    <text x="246" y="112" text-anchor="middle" font-family="Fraunces, serif" font-size="9" font-weight="700" fill="#fff">FREE</text>
+
+    <!-- sign post -->
+    <line x1="246" y1="116" x2="246" y2="128" stroke="#c05c2e" stroke-width="1.5"/>
+
+    <!-- LAMP nearby -->
+    <rect x="340" y="100" width="6" height="60" rx="2" fill="#0f766e" opacity="0.2"/>
+    <ellipse cx="343" cy="100" rx="14" ry="6" fill="#0f766e" opacity="0.15"/>
+
+    <!-- person approaching -->
+    <circle cx="440" cy="138" r="10" fill="#0f766e" opacity="0.3"/>
+    <line x1="440" y1="148" x2="440" y2="168" stroke="#0f766e" stroke-width="4" stroke-linecap="round" opacity="0.3"/>
+    <line x1="440" y1="155" x2="428" y2="162" stroke="#0f766e" stroke-width="3" stroke-linecap="round" opacity="0.3"/>
+    <line x1="440" y1="155" x2="452" y2="162" stroke="#0f766e" stroke-width="3" stroke-linecap="round" opacity="0.3"/>
+    <line x1="440" y1="168" x2="432" y2="180" stroke="#0f766e" stroke-width="3" stroke-linecap="round" opacity="0.3"/>
+    <line x1="440" y1="168" x2="448" y2="180" stroke="#0f766e" stroke-width="3" stroke-linecap="round" opacity="0.3"/>
+
+    <!-- arrow pointing person toward sofa -->
+    <path d="M395 148 Q370 140 350 148" stroke="#0d9488" stroke-width="1.5" fill="none" stroke-dasharray="4,3" opacity="0.5"/>
+    <polygon points="351,143 345,150 357,152" fill="#0d9488" opacity="0.5"/>
+</svg>
