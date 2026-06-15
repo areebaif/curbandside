@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Curb & Side - Browse</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://api.mapbox.com/mapbox-gl-js/v3.6.0/mapbox-gl.css" rel="stylesheet">
+    <script src="https://api.mapbox.com/mapbox-gl-js/v3.6.0/mapbox-gl.js"></script>
+</head>
+<body class="bg-white text-slate-900">
+
+<!-- Navbar -->
+<nav class="border-b border-slate-100">
+    <div class="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
+        <a href="/" class="font-bold text-xl text-teal-700">Curb <span class="text-slate-900">&amp;</span> Side</a>
+        <a href="/" class="text-sm font-medium text-slate-800 hover:underline">Home</a>
+    </div>
+</nav>
+
+<!-- Search -->
+<section class="bg-teal-50 px-6 py-10">
+    <div class="max-w-3xl mx-auto">
+        <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 text-center mb-6">
+            See What's Near Me
+        </h1>
+        <form id="search-form" class="flex flex-col sm:flex-row gap-3">
+            <input type="text" id="location-search" name="q"
+                   placeholder="Search a city, neighborhood, or address (e.g. Chicago, IL)"
+                   class="flex-1 border border-slate-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-teal-500">
+            <button type="submit"
+                    class="bg-teal-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-teal-600 transition-colors">
+                Search
+            </button>
+        </form>
+        <p id="search-status" class="mt-2 text-sm text-slate-500"></p>
+    </div>
+</section>
+
+<!-- Map -->
+<section class="px-6 py-8">
+    <div class="max-w-6xl mx-auto">
+        <div id="map" class="w-full rounded-2xl border border-slate-200 shadow-sm" style="height: calc(100vh - 320px); min-height: 300px;"></div>
+    </div>
+</section>
+
+<!-- Footer -->
+<footer class="text-center text-sm text-slate-400 py-8 border-t border-slate-100">
+    &copy; 2026 Curb &amp; Side
+</footer>
+
+<script th:inline="javascript">
+    // Injected from application.properties via the controller
+    mapboxgl.accessToken = /*[[${mapboxAccessToken}]]*/ 'YOUR_MAPBOX_ACCESS_TOKEN';
+
+    const map = new mapboxgl.Map({
+        container: 'map',
+        style: 'mapbox://styles/mapbox/streets-v12',
+        center: [-87.6298, 41.8781], // default: Chicago
+        zoom: 11
+    });
+
+    const SOURCE_ID = 'listings';
+    const LAYER_ID = 'listings-points';
+
+    map.on('load', () => {
+        map.addSource(SOURCE_ID, {
+            type: 'geojson',
+            data: { type: 'FeatureCollection', features: [] }
+        });
+
+        map.addLayer({
+            id: LAYER_ID,
+            type: 'circle',
+            source: SOURCE_ID,
+            paint: {
+                'circle-radius': 7,
+                'circle-color': '#14b8a6', // teal-500
+                'circle-stroke-width': 2,
+                'circle-stroke-color': '#ffffff'
+            }
+        });
+
+        // Click a point to show a popup with listing details
+        map.on('click', LAYER_ID, (e) => {
+            const feature = e.features[0];
+            const props = feature.properties;
+            const coords = feature.geometry.coordinates.slice();
+
+            new mapboxgl.Popup()
+                .setLngLat(coords)
+                .setHTML(`
+                    <div class="text-sm">
+                        <strong>${props.title ?? ''}</strong><br>
+                        ${props.condition ? props.condition + '<br>' : ''}
+                        ${props.address ?? ''}
+                    </div>
+                `)
+                .addTo(map);
+        });
+
+        map.on('mouseenter', LAYER_ID, () => {
+            map.getCanvas().style.cursor = 'pointer';
+        });
+        map.on('mouseleave', LAYER_ID, () => {
+            map.getCanvas().style.cursor = '';
+        });
+    });
+
+    async function search(query) {
+        const statusEl = document.getElementById('search-status');
+        statusEl.textContent = 'Searching...';
+
+        try {
+            // Single endpoint: returns a GeoJSON FeatureCollection from MySQL
+            const res = await fetch(`/api/listings/search?q=${encodeURIComponent(query)}`);
+            if (!res.ok) {
+                throw new Error('Search request failed');
+            }
+            const geojson = await res.json();
+
+            // Update the map source with the new results
+            const source = map.getSource(SOURCE_ID);
+            if (source) {
+                source.setData(geojson);
+            }
+
+            const count = geojson.features ? geojson.features.length : 0;
+            statusEl.textContent = `Found ${count} item(s) for "${query}"`;
+
+            // If there are results, fly to the first one; otherwise leave the map as is
+            if (count > 0) {
+                const [lng, lat] = geojson.features[0].geometry.coordinates;
+                map.flyTo({ center: [lng, lat], zoom: 12 });
+            } else {
+                statusEl.textContent = `No items found for "${query}"`;
+            }
+        } catch (err) {
+            console.error(err);
+            statusEl.textContent = 'Something went wrong. Please try again.';
+        }
+    }
+
+    document.getElementById('search-form').addEventListener('submit', (e) => {
+        e.preventDefault();
+        const query = document.getElementById('location-search').value.trim();
+        if (query) search(query);
+    });
+</script>
+
+</body>
+</html>

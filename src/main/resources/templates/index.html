@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Curb & Side</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-white text-slate-900">
+
+<!-- Navbar -->
+<nav class="border-b border-slate-100">
+    <div class="max-w-6xl mx-auto px-6 py-4 flex justify-between items-center">
+        <span class="font-bold text-xl text-teal-700">Curb <span class="text-slate-900">&amp;</span> Side</span>
+        <a href="#how-it-works" class="text-sm font-medium text-slate-800 hover:underline">How it works</a>
+    </div>
+</nav>
+
+<!-- Hero -->
+<section class="bg-teal-50 px-6 py-20 text-center">
+    <p class="text-sm font-semibold tracking-widest text-teal-600 mb-4">
+        NO DROP-OFFS. NO MIDDLEMEN. NO DRIVING.
+    </p>
+    <h1 class="text-4xl sm:text-6xl font-extrabold leading-tight text-slate-900">
+        Too good to trash.<br><span class="text-teal-500">Too heavy to haul.</span>
+    </h1>
+    <p class="mt-6 text-lg text-slate-600 max-w-2xl mx-auto">
+        The old way of leaving stuff on the curb, but now people can actually find it.
+    </p>
+    <div class="mt-10 flex flex-col sm:flex-row justify-center items-center gap-4">
+        <a href="#post-item"
+           class="w-full sm:w-auto text-center bg-teal-500 text-white px-6 py-3 rounded-full font-semibold hover:bg-teal-600 transition-colors">
+            Post Something for Free
+        </a>
+        <a href="#"
+           class="w-full sm:w-auto text-center bg-white text-teal-700 border border-teal-600 px-6 py-3 rounded-full font-semibold hover:bg-teal-50 transition-colors">
+            See What's Near Me
+        </a>
+    </div>
+</section>
+
+<!-- How it works -->
+<section id="how-it-works" class="max-w-6xl mx-auto px-6 py-20">
+    <div class="text-center mb-16">
+        <h2 class="text-3xl sm:text-4xl font-extrabold">Three steps. Zero hassle.</h2>
+        <p class="mt-4 text-slate-600 max-w-2xl mx-auto">
+            We're not asking you to be charitable. We're asking you to be lazy
+            &mdash; in a good way. You were going to leave it outside anyway.
+        </p>
+    </div>
+
+    <div class="grid sm:grid-cols-3 gap-10">
+        <!-- Step 1 -->
+        <div class="text-center">
+            <div class="w-12 h-12 mx-auto mb-4 flex items-center justify-center rounded-full bg-teal-700 text-white font-bold">01</div>
+            <h3 class="text-xl font-bold mb-2">Set it outside</h3>
+            <p class="text-slate-600">
+                Drag it to your curb, porch, or driveway. You're done moving this item.
+                No truck rental. No donation center. No carrying it anywhere else.
+            </p>
+        </div>
+
+        <!-- Step 2 -->
+        <div class="text-center">
+            <div class="w-12 h-12 mx-auto mb-4 flex items-center justify-center rounded-full bg-teal-500 text-white font-bold">02</div>
+            <h3 class="text-xl font-bold mb-2">Post where it is</h3>
+            <p class="text-slate-600">
+                Snap a photo. Drop a pin. Write one sentence. Under 60 seconds.
+                Your neighbors can see it on the map instantly.
+            </p>
+        </div>
+
+        <!-- Step 3 -->
+        <div class="text-center">
+            <div class="w-12 h-12 mx-auto mb-4 flex items-center justify-center rounded-full bg-slate-800 text-white font-bold">03</div>
+            <h3 class="text-xl font-bold mb-2">Watch it disappear</h3>
+            <p class="text-slate-600">
+                A neighbor shows up and takes it. They mark it claimed.
+                No meetups. No back-and-forth messages. It's just gone &mdash; in a good way.
+            </p>
+        </div>
+    </div>
+</section>
+
+<!-- Why section -->
+<section class="bg-gray-50 py-20">
+    <div class="max-w-6xl mx-auto px-6 text-center">
+        <h2 class="text-3xl sm:text-4xl font-extrabold leading-tight">
+            Furniture that gets thrown away<br>wasn't ready to go.
+        </h2>
+        <p class="mt-6 text-slate-600 max-w-2xl mx-auto">
+            Every year, millions of couches, tables, and chairs end up in landfills
+            &mdash; not because they're broken, but because donating them is too much effort.
+            Curbside makes "free to a good home" the easiest thing you've ever done.
+        </p>
+
+        <div class="mt-16 grid sm:grid-cols-3 gap-10">
+            <div>
+                <p class="text-5xl font-extrabold text-slate-800">9.8M</p>
+                <p class="mt-2 text-slate-600">Tons of furniture landfilled yearly in the US</p>
+            </div>
+            <div>
+                <p class="text-5xl font-extrabold text-teal-600">80%</p>
+                <p class="mt-2 text-slate-600">Still usable when it's thrown out</p>
+            </div>
+            <div>
+                <p class="text-5xl font-extrabold text-slate-800">0 min</p>
+                <p class="mt-2 text-slate-600">Driving time required from you</p>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Post an item form -->
+<section id="post-item" class="bg-teal-50 py-20">
+    <div class="max-w-xl mx-auto px-6">
+        <div class="text-center mb-10">
+            <h2 class="text-3xl sm:text-4xl font-extrabold text-slate-900">Give your first item</h2>
+            <p class="mt-2 text-lg font-semibold text-teal-600">What's sitting on your curb?</p>
+        </div>
+
+        <form class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 sm:p-8 space-y-5" method="post" action="#">
+            <div class="text-center mb-2">
+                <h3 class="text-xl font-bold text-slate-900">Post your item</h3>
+                <p class="mt-2 text-slate-600 text-sm">
+                    No account needed. Takes under 60 seconds. Your neighbors will see it the moment you hit post.
+                </p>
+            </div>
+
+            <div>
+                <label for="title" class="block text-sm font-semibold text-slate-700 mb-1">What is it?</label>
+                <input type="text" id="title" name="title" required
+                       placeholder="e.g. Wooden bookshelf"
+                       class="w-full border border-slate-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500">
+            </div>
+
+            <div>
+                <label for="condition" class="block text-sm font-semibold text-slate-700 mb-1">Condition (optional)</label>
+                <input type="text" id="condition" name="condition"
+                       placeholder="e.g. Good condition, minor scratches"
+                       class="w-full border border-slate-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500">
+            </div>
+
+            <div>
+                <label for="location" class="block text-sm font-semibold text-slate-700 mb-1">Location</label>
+                <div class="flex flex-col sm:flex-row gap-2">
+                    <input type="text" id="location" name="location" required
+                           placeholder="Enter an address"
+                           class="flex-1 border border-slate-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500">
+                    <button type="button" id="drop-pin"
+                            class="flex items-center justify-center gap-1 border border-teal-600 text-teal-700 px-4 py-2 rounded-lg font-semibold hover:bg-teal-50 transition-colors whitespace-nowrap">
+                        📍 Drop Pin
+                    </button>
+                </div>
+            </div>
+
+            <div>
+                <label for="photo" class="block text-sm font-semibold text-slate-700 mb-1">Snap a photo</label>
+                <input type="file" id="photo" name="photo" accept="image/*"
+                       class="w-full border border-slate-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500 file:mr-4 file:py-1 file:px-3 file:rounded-md file:border-0 file:bg-teal-50 file:text-teal-700 file:font-semibold">
+            </div>
+
+            <button type="submit"
+                    class="w-full bg-teal-500 text-white px-6 py-3 rounded-full font-semibold hover:bg-teal-600 transition-colors">
+                Post It — Free, No Account Needed
+            </button>
+        </form>
+    </div>
+</section>
+
+<!-- Footer -->
+<footer class="text-center text-sm text-slate-400 py-8 border-t border-slate-100">
+    &copy; 2026 Curb &amp; Side
+</footer>
+
+</body>
+</html>
