@@ -11,9 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping("/api/listings")
 public class ListingApiController {
-    /**
-     * Creates a new listing from the "Post your item" form.
-     */
+
     @PostMapping
     public ResponseEntity<?> create(@Valid @RequestBody ListingRequestDto request) {
 

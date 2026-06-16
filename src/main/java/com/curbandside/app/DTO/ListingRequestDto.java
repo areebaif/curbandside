@@ -3,9 +3,6 @@ package com.curbandside.app.DTO;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
-/**
- * Request body for creating a new listing via POST /api/listings.
- */
 public class ListingRequestDto {
 
         @NotBlank(message = "Title is required")
