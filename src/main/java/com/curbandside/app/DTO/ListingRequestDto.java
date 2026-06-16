@@ -3,6 +3,8 @@ package com.curbandside.app.DTO;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
+import java.math.BigDecimal;
+
 public class ListingRequestDto {
 
         @NotBlank(message = "Title is required")
@@ -17,10 +19,10 @@ public class ListingRequestDto {
         private String status;
 
         @NotNull(message = "Latitude is required")
-        private Double latitude;
+        private BigDecimal latitude;
 
         @NotNull(message = "Longitude is required")
-        private Double longitude;
+        private BigDecimal longitude;
 
         public ListingRequestDto() {
         }
@@ -57,19 +59,19 @@ public class ListingRequestDto {
                 this.status = status;
         }
 
-        public Double getLatitude() {
+        public @NotNull(message = "Latitude is required") BigDecimal getLatitude() {
                 return latitude;
         }
 
-        public void setLatitude(Double latitude) {
+        public void setLatitude(@NotNull(message = "Latitude is required") BigDecimal latitude) {
                 this.latitude = latitude;
         }
 
-        public Double getLongitude() {
+        public @NotNull(message = "Longitude is required") BigDecimal getLongitude() {
                 return longitude;
         }
 
-        public void setLongitude(Double longitude) {
+        public void setLongitude(@NotNull(message = "Longitude is required") BigDecimal longitude) {
                 this.longitude = longitude;
         }
 

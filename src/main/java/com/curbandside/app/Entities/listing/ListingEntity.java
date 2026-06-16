@@ -1,4 +1,4 @@
-package com.curbandside.app.Entity.listing;
+package com.curbandside.app.Entities.listing;
 
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -24,7 +24,7 @@ public class ListingEntity {
     private ListingCategory listingCategory;
 
     @Enumerated(EnumType.STRING)
-    @Column(length = 50, name = "condition")
+    @Column(length = 50, name = "\"condition\"")
     private ListingCondition listingCondition;
 
     @Enumerated(EnumType.STRING)
@@ -136,9 +136,6 @@ public class ListingEntity {
                 ", listingStatus=" + listingStatus +
                 ", latitude=" + latitude +
                 ", longitude=" + longitude +
-                ", version=" + version +
-                ", createdAt=" + createdAt +
-                ", updatedAt=" + updatedAt +
                 '}';
     }
 }

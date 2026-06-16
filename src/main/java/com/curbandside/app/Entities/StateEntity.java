@@ -1,4 +1,4 @@
-package com.curbandside.app.Entity;
+package com.curbandside.app.Entities;
 
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;

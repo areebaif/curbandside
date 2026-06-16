@@ -1,6 +1,7 @@
-package com.curbandside.app.Entity.listing;
+package com.curbandside.app.Entities.listing;
 
 public enum ListingCategory {
+    TYPE_SOFA,
     TYPE_TABLE,
     TYPE_CHAIR,
     TYPE_BED,

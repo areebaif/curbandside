@@ -1,4 +1,4 @@
-package com.curbandside.app.Entity.listing;
+package com.curbandside.app.Entities.listing;
 
 public enum ListingCondition {
     CONDITION_GOOD_NORMAL_WEAR,
