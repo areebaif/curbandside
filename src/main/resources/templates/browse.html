@@ -43,15 +43,63 @@
             See What's Near Me
         </h1>
         <form id="search-form" class="flex flex-col sm:flex-row gap-3">
-            <input type="text" id="location-search" name="q"
-                   placeholder="Search a city, neighborhood, or address (e.g. Chicago, IL)"
-                   class="flex-1 border border-slate-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-teal-500">
+            <div class="relative flex-1">
+                <input type="text" id="location-search" name="q" autocomplete="off"
+                       placeholder="Search a city, neighborhood, or address (e.g. Chicago, IL)"
+                       class="w-full border border-slate-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-teal-500">
+                <ul id="autocomplete-list"
+                    class="hidden absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-64 overflow-y-auto z-20 text-left">
+                </ul>
+            </div>
             <button type="submit"
                     class="bg-teal-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-teal-600 transition-colors">
                 Search
             </button>
         </form>
         <p id="search-status" class="mt-2 text-sm text-slate-500"></p>
+
+        <div id="category-filters" class="mt-4 flex flex-wrap gap-2 justify-center">
+            <button type="button" data-category="ALL"
+                    class="filter-chip active px-3 py-1.5 rounded-full text-sm font-medium border border-teal-600 bg-teal-600 text-white transition-colors">
+                All
+            </button>
+            <button type="button" data-category="TYPE_SOFA"
+                    class="filter-chip px-3 py-1.5 rounded-full text-sm font-medium border border-teal-600 bg-white text-teal-700 transition-colors">
+                Sofa / Couch
+            </button>
+            <button type="button" data-category="TYPE_TABLE"
+                    class="filter-chip px-3 py-1.5 rounded-full text-sm font-medium border border-teal-600 bg-white text-teal-700 transition-colors">
+                Table
+            </button>
+            <button type="button" data-category="TYPE_CHAIR"
+                    class="filter-chip px-3 py-1.5 rounded-full text-sm font-medium border border-teal-600 bg-white text-teal-700 transition-colors">
+                Chair
+            </button>
+            <button type="button" data-category="TYPE_BED"
+                    class="filter-chip px-3 py-1.5 rounded-full text-sm font-medium border border-teal-600 bg-white text-teal-700 transition-colors">
+                Bed / Frame
+            </button>
+            <button type="button" data-category="TYPE_DRESSER"
+                    class="filter-chip px-3 py-1.5 rounded-full text-sm font-medium border border-teal-600 bg-white text-teal-700 transition-colors">
+                Dresser / Wardrobe
+            </button>
+            <button type="button" data-category="TYPE_DESK"
+                    class="filter-chip px-3 py-1.5 rounded-full text-sm font-medium border border-teal-600 bg-white text-teal-700 transition-colors">
+                Desk
+            </button>
+            <button type="button" data-category="TYPE_SHELVING"
+                    class="filter-chip px-3 py-1.5 rounded-full text-sm font-medium border border-teal-600 bg-white text-teal-700 transition-colors">
+                Shelving
+            </button>
+            <button type="button" data-category="TYPE_APPLIANCE"
+                    class="filter-chip px-3 py-1.5 rounded-full text-sm font-medium border border-teal-600 bg-white text-teal-700 transition-colors">
+                Appliance
+            </button>
+            <button type="button" data-category="TYPE_OTHER"
+                    class="filter-chip px-3 py-1.5 rounded-full text-sm font-medium border border-teal-600 bg-white text-teal-700 transition-colors">
+                Other
+            </button>
+        </div>
     </div>
 </section>
 
@@ -115,25 +163,32 @@
         const condition = CONDITION_LABELS[props.condition] || props.condition || '';
         const status = STATUS_LABELS[props.status] || props.status || '';
         const imageUrl = props.coverUrl;
+        const listingId = props.listingId;
+        const isClaimed = props.status === 'STATUS_CLAIMED';
 
-        const statusBadgeClass = props.status === 'STATUS_CLAIMED'
+        const statusBadgeClass = isClaimed
             ? 'bg-slate-200 text-slate-600'
             : 'bg-teal-100 text-teal-700';
 
+        const claimButtonHtml = isClaimed
+            ? `<button disabled style="width:100%; margin-top:10px; padding:10px 0; border-radius:10px; border:none; background:#e2e8f0; color:#64748b; font-weight:600; font-size:14px; cursor:not-allowed;">Already Claimed</button>`
+            : `<button onclick="sendPrompt && sendPrompt('Claim listing ${listingId}')" style="width:100%; margin-top:10px; padding:10px 0; border-radius:10px; border:none; background:#14b8a6; color:#fff; font-weight:600; font-size:14px; cursor:pointer;">Claim This Item</button>`;
+
         return `
-            <div style="width: min(280px, 80vw); font-family: inherit;">
-                ${imageUrl ? `
-                    <div style="width:100%; height:140px; overflow:hidden; border-radius:12px 12px 0 0; background:#f1f5f9;">
-                        <img src="${imageUrl}" alt="${title}" style="width:100%; height:100%; object-fit:cover; display:block;">
+            <div style="width: min(290px, 82vw); font-family: inherit;">
+                <div style="width:100%; height:150px; overflow:hidden; border-radius:14px 14px 0 0; background:linear-gradient(135deg,#f0fdfa,#f1f5f9); display:flex; align-items:center; justify-content:center; padding:18px; box-sizing:border-box;">
+                    <img src="${imageUrl}" alt="${title}" style="max-width:100%; max-height:100%; object-fit:contain; display:block;">
+                </div>
+                <div style="padding:14px 16px 16px;">
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px; margin-bottom:8px;">
+                        <h3 style="font-weight:700; font-size:16px; line-height:1.3; margin:0; color:#0f172a;">${title}</h3>
+                        <span class="${statusBadgeClass}" style="font-size:11px; font-weight:600; padding:3px 9px; border-radius:9999px; white-space:nowrap; margin-top:2px;">${status}</span>
                     </div>
-                ` : ''}
-                <div style="padding:12px 14px;">
-                    <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px; margin-bottom:6px;">
-                        <h3 style="font-weight:700; font-size:15px; line-height:1.3; margin:0; color:#0f172a;">${title}</h3>
-                        <span class="${statusBadgeClass}" style="font-size:11px; font-weight:600; padding:2px 8px; border-radius:9999px; white-space:nowrap;">${status}</span>
+                    <div style="display:flex; flex-direction:column; gap:3px; margin-bottom:4px;">
+                        ${category ? `<p style="font-size:13px; color:#475569; margin:0; display:flex; align-items:center; gap:6px;"><span style="opacity:0.6;">📦</span>${category}</p>` : ''}
+                        ${condition ? `<p style="font-size:13px; color:#475569; margin:0; display:flex; align-items:center; gap:6px;"><span style="opacity:0.6;">✨</span>${condition}</p>` : ''}
                     </div>
-                    ${category ? `<p style="font-size:13px; color:#475569; margin:2px 0;">${category}</p>` : ''}
-                    ${condition ? `<p style="font-size:13px; color:#475569; margin:2px 0;">${condition}</p>` : ''}
+                    ${claimButtonHtml}
                 </div>
             </div>
         `;
@@ -145,18 +200,34 @@
             data: { type: 'FeatureCollection', features: [] }
         });
 
+        // Halo layer underneath for extra visibility/contrast against any map style
+        map.addLayer({
+            id: LAYER_ID + '-halo',
+            type: 'circle',
+            source: SOURCE_ID,
+            paint: {
+                'circle-radius': 16,
+                'circle-color': [
+                    'case',
+                    ['==', ['get', 'status'], 'STATUS_CLAIMED'], '#64748b',
+                    '#0d9488'
+                ],
+                'circle-opacity': 0.18
+            }
+        });
+
         map.addLayer({
             id: LAYER_ID,
             type: 'circle',
             source: SOURCE_ID,
             paint: {
-                'circle-radius': 8,
+                'circle-radius': 11,
                 'circle-color': [
                     'case',
-                    ['==', ['get', 'status'], 'STATUS_CLAIMED'], '#94a3b8',
-                    '#14b8a6'
+                    ['==', ['get', 'status'], 'STATUS_CLAIMED'], '#64748b',
+                    '#0d9488'
                 ],
-                'circle-stroke-width': 2,
+                'circle-stroke-width': 3,
                 'circle-stroke-color': '#ffffff'
             }
         });
@@ -185,6 +256,31 @@
         loadNearbyListings(initialLat, initialLng);
     });
 
+    let currentCategory = 'ALL';
+
+    function applyMapFilter() {
+        const filterExpr = currentCategory === 'ALL'
+            ? null
+            : ['==', ['get', 'category'], currentCategory];
+
+        map.setFilter(LAYER_ID, filterExpr);
+        map.setFilter(LAYER_ID + '-halo', filterExpr);
+    }
+
+    document.querySelectorAll('.filter-chip').forEach((chip) => {
+        chip.addEventListener('click', () => {
+            document.querySelectorAll('.filter-chip').forEach((c) => {
+                c.classList.remove('active', 'bg-teal-600', 'text-white');
+                c.classList.add('bg-white', 'text-teal-700');
+            });
+            chip.classList.add('active', 'bg-teal-600', 'text-white');
+            chip.classList.remove('bg-white', 'text-teal-700');
+
+            currentCategory = chip.dataset.category;
+            applyMapFilter();
+        });
+    });
+
     async function loadNearbyListings(lat, lng) {
         const statusEl = document.getElementById('search-status');
 
@@ -199,6 +295,7 @@
             if (source) {
                 source.setData(geojson);
             }
+            applyMapFilter();
 
             const count = geojson.features ? geojson.features.length : 0;
             statusEl.textContent = count > 0
@@ -227,6 +324,7 @@
             if (source) {
                 source.setData(geojson);
             }
+            applyMapFilter();
 
             const count = geojson.features ? geojson.features.length : 0;
             statusEl.textContent = `Found ${count} item(s) for "${query}"`;
@@ -248,6 +346,123 @@
         e.preventDefault();
         const query = document.getElementById('location-search').value.trim();
         if (query) search(query);
+    });
+
+    // ----- Autocomplete with debounce -----
+    const searchInput = document.getElementById('location-search');
+    const autocompleteList = document.getElementById('autocomplete-list');
+    let debounceTimer = null;
+    let activeIndex = -1;
+
+    function hideAutocomplete() {
+        autocompleteList.classList.add('hidden');
+        autocompleteList.innerHTML = '';
+        activeIndex = -1;
+    }
+
+    function renderSuggestions(suggestions) {
+        autocompleteList.innerHTML = '';
+
+        if (!suggestions || suggestions.length === 0) {
+            hideAutocomplete();
+            return;
+        }
+
+        suggestions.forEach((item, index) => {
+            const li = document.createElement('li');
+            li.dataset.index = index;
+            li.className = 'px-4 py-2 cursor-pointer hover:bg-teal-50 text-sm text-slate-700 border-b border-slate-100 last:border-b-0';
+            li.textContent = item.label || item.name || item;
+
+            li.addEventListener('click', () => {
+                selectSuggestion(item);
+            });
+
+            autocompleteList.appendChild(li);
+        });
+
+        autocompleteList.classList.remove('hidden');
+    }
+
+    function selectSuggestion(item) {
+        const label = item.label || item.name || item;
+        searchInput.value = label;
+        hideAutocomplete();
+        search(label);
+    }
+
+    async function fetchSuggestions(query) {
+        try {
+            const res = await fetch(`/api/places/autocomplete?q=${encodeURIComponent(query)}`);
+            if (!res.ok) {
+                throw new Error('Autocomplete request failed');
+            }
+            const data = await res.json();
+            // Expecting either an array directly, or { suggestions: [...] }
+            const suggestions = Array.isArray(data) ? data : (data.suggestions || []);
+            renderSuggestions(suggestions);
+        } catch (err) {
+            console.error(err);
+            hideAutocomplete();
+        }
+    }
+
+    searchInput.addEventListener('input', () => {
+        const query = searchInput.value.trim();
+
+        clearTimeout(debounceTimer);
+
+        if (query.length < 2) {
+            hideAutocomplete();
+            return;
+        }
+
+        debounceTimer = setTimeout(() => {
+            fetchSuggestions(query);
+        }, 300);
+    });
+
+    // Keyboard navigation: arrow keys + enter
+    searchInput.addEventListener('keydown', (e) => {
+        const items = autocompleteList.querySelectorAll('li');
+        if (items.length === 0 || autocompleteList.classList.contains('hidden')) {
+            return;
+        }
+
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            activeIndex = Math.min(activeIndex + 1, items.length - 1);
+            updateActiveItem(items);
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            activeIndex = Math.max(activeIndex - 1, 0);
+            updateActiveItem(items);
+        } else if (e.key === 'Enter') {
+            if (activeIndex >= 0 && items[activeIndex]) {
+                e.preventDefault();
+                items[activeIndex].click();
+            }
+        } else if (e.key === 'Escape') {
+            hideAutocomplete();
+        }
+    });
+
+    function updateActiveItem(items) {
+        items.forEach((item, idx) => {
+            if (idx === activeIndex) {
+                item.classList.add('bg-teal-50');
+            } else {
+                item.classList.remove('bg-teal-50');
+            }
+        });
+        items[activeIndex].scrollIntoView({ block: 'nearest' });
+    }
+
+    // Hide dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+        if (!searchInput.contains(e.target) && !autocompleteList.contains(e.target)) {
+            hideAutocomplete();
+        }
     });
 </script>
 

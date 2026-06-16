@@ -11,7 +11,9 @@ import java.math.BigDecimal;
 import java.util.*;
 
 public class GeoJsonFeatureForListingTransformer implements TupleTransformer<ListingFeature>, ResultListTransformer<ListingFeature> {
+
     final Map<String, ListingFeature> listingDtoMap = new HashMap<>();
+
 
     @Override
     public ListingFeature transformTuple(Object[] row, String[] strings) {
@@ -34,7 +36,6 @@ public class GeoJsonFeatureForListingTransformer implements TupleTransformer<Lis
         }
 
         if (listingFeatureGeoJsonDto.getProperties() == null) {
-
             ListingPropertiesForGeoJson listingGeoJsonPropertiesDto = new ListingPropertiesForGeoJson();
             listingGeoJsonPropertiesDto.setListingId(restaurantId);
             listingGeoJsonPropertiesDto.setTitle((String) row[1]);

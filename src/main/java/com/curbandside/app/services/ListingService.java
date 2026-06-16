@@ -4,6 +4,7 @@ import java.util.Base64;
 
 import com.curbandside.app.DTO.GeoJson.ListingFeature;
 import com.curbandside.app.DTO.GeoJson.ListingFeatureCollection;
+import com.curbandside.app.DTO.GeoJson.ListingPropertiesForGeoJson;
 import com.curbandside.app.DTO.GeoJson.PointGeometry;
 import com.curbandside.app.DTO.ListingRequestDto;
 import com.curbandside.app.Entities.listing.ListingCategory;
@@ -22,11 +23,14 @@ import java.util.List;
 
 @Service
 public class ListingService {
-
+    private  final SvgAssetService svgAssetService;
     private final ListingRepository listingRepository;
 
-    public ListingService(ListingRepository listingRepositoryImpl) {
+
+    public ListingService(ListingRepository listingRepositoryImpl, SvgAssetService svgAssetService) {
         this.listingRepository = listingRepositoryImpl;
+        this.svgAssetService = svgAssetService;
+
     }
 
     @Transactional
@@ -75,6 +79,7 @@ public class ListingService {
             return Double.compare(distanceA, distanceB);
         });
 
+        features.forEach(item -> this.setImageUrl(item.getProperties()) );
 
         return ListingFeatureCollection
                 .newBuilder()
@@ -119,16 +124,31 @@ public class ListingService {
         };
     }
 
-    private String convertSvgToDataUrl(String rawSvgContent) {
-        // Encode the raw XML string to Base64
-        String base64Encoded = Base64.getEncoder()
-                .encodeToString(rawSvgContent.getBytes(StandardCharsets.UTF_8));
 
-        // Return the formatted Data URL header paired with the encoded body
-        return "data:image/svg+xml;base64," + base64Encoded;
+
+//    private void addSvgToFeature(String category) {
+//        switch (category) {
+//            case "TYPE_SOFA" -> System.out.println("Monday");
+//            case "TYPE_TABLE" -> System.out.println("Mid-week day"); // Multiple values per case
+//            case "TYPE_BED" -> System.out.println("Friday");
+//            case "TYPE_CHAIR" -> System.out.println("Friday");
+//            case "TYPE_DRESSER" -> System.out.println("Friday");
+//            case "TYPE_DESK" -> System.out.println("Friday");
+//            case "TYPE_SHELVING" -> System.out.println("Friday");
+//            case "TYPE_APPLIANCE" -> System.out.println("Friday");
+//            case "TYPE_OTHER" -> System.out.println("Friday");
+//
+//            default -> System.out.println("Weekend");
+//
+//        }
+//    }
+
+    private void setImageUrl(ListingPropertiesForGeoJson properties) {
+        String category = properties.getCategory();
+
+        String svgUrl =  svgAssetService.getSvgForCategory(category);
+        properties.setCoverUrl(svgUrl);
+
     }
 
-//    private String addSvgImageToFeature(ListingFeature feature) {
-//
-//    }
 }
