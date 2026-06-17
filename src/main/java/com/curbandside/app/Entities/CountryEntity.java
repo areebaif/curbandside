@@ -1,5 +1,6 @@
 package com.curbandside.app.Entities;
 
+import com.curbandside.app.Entities.listing.ListingEntity;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -36,6 +37,10 @@ public class CountryEntity {
     @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    @OneToMany(cascade = CascadeType.ALL,
+            mappedBy = "country", orphanRemoval = true)
+    private List<ListingEntity> listings = new ArrayList<>();
 
     // constructors
     public CountryEntity() {
@@ -166,6 +171,33 @@ public class CountryEntity {
             ZipcodeEntity zipcode = iterator.next();
 
             zipcode.setCountry(null);
+            iterator.remove();
+        }
+    }
+
+    public List<ListingEntity> getListings() {
+        return listings;
+    }
+
+    public void setListings(List<ListingEntity> listings) {
+        this.listings = listings;
+    }
+
+    public void addListing(ListingEntity listing) {
+        this.listings.add(listing);
+        listing.setCountry(this);
+    }
+
+    public void removeListing(ListingEntity listing) {
+        listing.setCountry(null);
+        this.listings.remove(listing);
+    }
+
+    public void removeListings() {
+        Iterator<ListingEntity> iterator = this.listings.iterator();
+        while (iterator.hasNext()) {
+            ListingEntity listing = iterator.next();
+            listing.setCountry(null);
             iterator.remove();
         }
     }

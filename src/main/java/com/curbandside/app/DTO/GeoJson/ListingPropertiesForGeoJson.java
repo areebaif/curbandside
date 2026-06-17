@@ -1,8 +1,11 @@
 package com.curbandside.app.DTO.GeoJson;
 
 
+import com.fasterxml.jackson.annotation.JsonInclude;
+
 import java.util.Objects;
 
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class ListingPropertiesForGeoJson {
         private String listingId;
 
@@ -15,6 +18,12 @@ public class ListingPropertiesForGeoJson {
         private String status;
 
         private String coverUrl;
+
+    private String iso3Code;
+
+    private String state;
+
+    private String city;
 
         public ListingPropertiesForGeoJson() {
         }
@@ -76,6 +85,30 @@ public class ListingPropertiesForGeoJson {
 
     public void setCoverUrl(String coverUrl) {
         this.coverUrl = coverUrl;
+    }
+
+    public String getIso3Code() {
+        return iso3Code;
+    }
+
+    public void setIso3Code(String iso3Code) {
+        this.iso3Code = iso3Code;
+    }
+
+    public String getState() {
+        return state;
+    }
+
+    public void setState(String state) {
+        this.state = state;
+    }
+
+    public String getCity() {
+        return city;
+    }
+
+    public void setCity(String city) {
+        this.city = city;
     }
 
     @Override

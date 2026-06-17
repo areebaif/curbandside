@@ -75,6 +75,119 @@ document.getElementById('drop-pin').addEventListener('click', () => {
     );
 });
 
+// ----- City/State autocomplete (debounced) -----
+const cityStateInput = document.getElementById('itemCityState');
+const cityAutocompleteList = document.getElementById('city-autocomplete-list');
+let cityDebounceTimer = null;
+let cityActiveIndex = -1;
+
+function hideCityAutocomplete() {
+    cityAutocompleteList.classList.add('hidden');
+    cityAutocompleteList.innerHTML = '';
+    cityActiveIndex = -1;
+}
+
+function renderCitySuggestions(suggestions) {
+    cityAutocompleteList.innerHTML = '';
+
+    if (!suggestions || suggestions.length === 0) {
+        hideCityAutocomplete();
+        return;
+    }
+
+    suggestions.forEach((item, index) => {
+        const li = document.createElement('li');
+        li.dataset.index = index;
+        li.className = 'px-4 py-2 cursor-pointer hover:bg-teal-50 text-sm text-slate-700 border-b border-slate-100 last:border-b-0';
+        li.textContent = item.label || item.name || item;
+
+        li.addEventListener('click', () => {
+            selectCitySuggestion(item);
+        });
+
+        cityAutocompleteList.appendChild(li);
+    });
+
+    cityAutocompleteList.classList.remove('hidden');
+}
+
+function selectCitySuggestion(item) {
+    const label = item.label || item.name || item;
+    cityStateInput.value = label;
+    hideCityAutocomplete();
+}
+
+async function fetchCitySuggestions(query) {
+    try {
+        const res = await fetch(`/api/places/autocomplete?q=${encodeURIComponent(query)}`);
+        if (!res.ok) {
+            throw new Error('Autocomplete request failed');
+        }
+        const data = await res.json();
+        const suggestions = Array.isArray(data) ? data : (data.suggestions || []);
+        renderCitySuggestions(suggestions);
+    } catch (err) {
+        console.error(err);
+        hideCityAutocomplete();
+    }
+}
+
+cityStateInput.addEventListener('input', () => {
+    const query = cityStateInput.value.trim();
+
+    clearTimeout(cityDebounceTimer);
+
+    if (query.length < 2) {
+        hideCityAutocomplete();
+        return;
+    }
+
+    cityDebounceTimer = setTimeout(() => {
+        fetchCitySuggestions(query);
+    }, 300);
+});
+
+cityStateInput.addEventListener('keydown', (e) => {
+    const items = cityAutocompleteList.querySelectorAll('li');
+    if (items.length === 0 || cityAutocompleteList.classList.contains('hidden')) {
+        return;
+    }
+
+    if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        cityActiveIndex = Math.min(cityActiveIndex + 1, items.length - 1);
+        updateCityActiveItem(items);
+    } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        cityActiveIndex = Math.max(cityActiveIndex - 1, 0);
+        updateCityActiveItem(items);
+    } else if (e.key === 'Enter') {
+        if (cityActiveIndex >= 0 && items[cityActiveIndex]) {
+            e.preventDefault();
+            items[cityActiveIndex].click();
+        }
+    } else if (e.key === 'Escape') {
+        hideCityAutocomplete();
+    }
+});
+
+function updateCityActiveItem(items) {
+    items.forEach((item, idx) => {
+        if (idx === cityActiveIndex) {
+            item.classList.add('bg-teal-50');
+        } else {
+            item.classList.remove('bg-teal-50');
+        }
+    });
+    items[cityActiveIndex].scrollIntoView({ block: 'nearest' });
+}
+
+document.addEventListener('click', (e) => {
+    if (!cityStateInput.contains(e.target) && !cityAutocompleteList.contains(e.target)) {
+        hideCityAutocomplete();
+    }
+});
+
 // Submit the post-item form via fetch
 document.getElementById('post-item-form').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -95,6 +208,7 @@ document.getElementById('post-item-form').addEventListener('submit', async (e) =
         category: form.category.value,
         condition: form.condition.value,
         status: form.status.value,
+        cityState: form.cityState.value,
         latitude: form.latitude.value ? parseFloat(form.latitude.value) : null,
         longitude: form.longitude.value ? parseFloat(form.longitude.value) : null
     };

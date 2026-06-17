@@ -1,5 +1,8 @@
 package com.curbandside.app.Entities.listing;
 
+import com.curbandside.app.Entities.CityEntity;
+import com.curbandside.app.Entities.CountryEntity;
+import com.curbandside.app.Entities.StateEntity;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -36,6 +39,18 @@ public class ListingEntity {
 
     @Column(name = "longitude", nullable = false)
     private BigDecimal longitude;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "country_id")
+    private CountryEntity country;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "state_id")
+    private StateEntity state;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "city_id")
+    private CityEntity city;
 
     @Version
     @Column(name = "version")
@@ -111,6 +126,30 @@ public class ListingEntity {
 
     public LocalDateTime getUpdatedAt() {
         return updatedAt;
+    }
+
+    public CountryEntity getCountry() {
+        return country;
+    }
+
+    public void setCountry(CountryEntity country) {
+        this.country = country;
+    }
+
+    public StateEntity getState() {
+        return state;
+    }
+
+    public void setState(StateEntity state) {
+        this.state = state;
+    }
+
+    public CityEntity getCity() {
+        return city;
+    }
+
+    public void setCity(CityEntity city) {
+        this.city = city;
     }
 
     @Override

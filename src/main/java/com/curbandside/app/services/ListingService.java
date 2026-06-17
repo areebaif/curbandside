@@ -1,41 +1,65 @@
 package com.curbandside.app.services;
-import java.nio.charset.StandardCharsets;
-import java.util.Base64;
 
-import com.curbandside.app.DTO.GeoJson.ListingFeature;
-import com.curbandside.app.DTO.GeoJson.ListingFeatureCollection;
-import com.curbandside.app.DTO.GeoJson.ListingPropertiesForGeoJson;
-import com.curbandside.app.DTO.GeoJson.PointGeometry;
+import com.curbandside.app.DTO.GeoJson.*;
 import com.curbandside.app.DTO.ListingRequestDto;
+import com.curbandside.app.Entities.CityEntity;
+import com.curbandside.app.Entities.CountryEntity;
+import com.curbandside.app.Entities.StateEntity;
 import com.curbandside.app.Entities.listing.ListingCategory;
 import com.curbandside.app.Entities.listing.ListingCondition;
 import com.curbandside.app.Entities.listing.ListingEntity;
 import com.curbandside.app.Entities.listing.ListingStatus;
-import com.curbandside.app.Repositories.ListingRepository;
+import com.curbandside.app.Repositories.*;
 import com.curbandside.app.utils.BoundingBox;
 import com.curbandside.app.utils.DistanceBwTwoCoordinates;
 import com.curbandside.app.utils.GeoJsonEnums;
+import com.curbandside.app.utils.MedianOfArrayElements;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class ListingService {
     private  final SvgAssetService svgAssetService;
     private final ListingRepository listingRepository;
+    private final ZipcodeRepository zipcodeRepository;
+    private final StateRepository stateRepository;
+    private final CityRepository cityRepository;
+    private final CountryRepository countryRepository;
 
 
-    public ListingService(ListingRepository listingRepositoryImpl, SvgAssetService svgAssetService) {
+    public ListingService(ListingRepository listingRepositoryImpl, SvgAssetService svgAssetService, ZipcodeRepository zipcodeRepositoryImpl, StateRepository stateRepositoryImpl, CityRepository cityRepositoryImpl, CountryRepository countryRepositoryImpl) {
         this.listingRepository = listingRepositoryImpl;
         this.svgAssetService = svgAssetService;
+        this.zipcodeRepository = zipcodeRepositoryImpl;
+        this.stateRepository = stateRepositoryImpl;
+        this.cityRepository = cityRepositoryImpl;
+        this.countryRepository = countryRepositoryImpl;
 
     }
 
     @Transactional
     @Modifying
     public ListingEntity saveListing(ListingRequestDto listingRequestDto) {
+        String[] cityAndState = Arrays.stream(listingRequestDto.getCityState().split(","))
+                .map(String::trim)
+                .toArray(String[]::new);
+        String city = cityAndState[0];
+        String stateAbbreviation = cityAndState[1];
+        String countryIso = "USA";
+
+        CountryEntity country = countryRepository.findEntityByIso(countryIso).orElseThrow(() -> new IllegalStateException("Unable to find country with provided iso"));
+
+        StateEntity state = stateRepository.getEntityByStateAbbreviationAndCountryId(stateAbbreviation, country.getId()).orElseThrow(() -> new IllegalStateException("Unable to find state with provided name"));
+
+        CityEntity cityEntity = cityRepository.getEntityByNameStateIdAndCountryId(city, state.getId(), 1L).orElseThrow(() -> new IllegalStateException("Unable to find city with provided name"));;
+
         ListingEntity listing = new ListingEntity();
         listing.setTitle(listingRequestDto.getTitle());
         listing.setListingCondition(this.convertListingCondition(listingRequestDto.getCondition()));
@@ -43,9 +67,10 @@ public class ListingService {
         listing.setListingStatus(this.convertListingStatus(listingRequestDto.getStatus()));
         listing.setLatitude(listingRequestDto.getLatitude());
         listing.setLongitude(listingRequestDto.getLongitude());
-
+        listing.setCountry(country);
+        listing.setCity(cityEntity);
+        listing.setState(state);
         return  listingRepository.save(listing);
-
     }
 
     public ListingFeatureCollection getGeoJsonFeatureCollectionOfListingsByClientLocation(Double latitude, Double longitude, Integer distanceInMiles) {
@@ -87,8 +112,75 @@ public class ListingService {
                 .features(features).build();
     }
 
+   public ListingFeatureCollection getGeoJsonFeatureCollectionOfListingsByCity(String query,Integer distanceInMiles) {
+       String[] cityAndState = Arrays.stream(query.split(","))
+               .map(String::trim)
+               .toArray(String[]::new);
+       String city = cityAndState[0];
+       String stateAbbreviation = cityAndState[1];
+       String countryIso = "USA";
+
+       CountryEntity country = countryRepository.findEntityByIso(countryIso).orElseThrow(() -> new IllegalStateException("Unable to find country with provided iso"));
+
+       StateEntity state = stateRepository.getEntityByStateAbbreviationAndCountryId(stateAbbreviation, country.getId()).orElseThrow(() -> new IllegalStateException("Unable to find state with provided name"));
+
+       CityEntity cityEntity = cityRepository.getEntityByNameStateIdAndCountryId(city, state.getId(), 1L).orElseThrow(() -> new IllegalStateException("Unable to find city with provided name"));;
+
+       List<ListingFeature> featuresCity = listingRepository.getGeoJsonFeatureCollectionOfListingsByCity(cityEntity.getName(), stateAbbreviation, countryIso);
+       // 2. Add restaurants near to city
+       LatitudeLongitudeListDto latitudeLongitudeListDto = getLatitudeLongitudeListForRestaurantsByCityName(cityEntity.getName(), stateAbbreviation, countryIso);
+       Optional<BigDecimal> medianLatitude = MedianOfArrayElements.getMedian(latitudeLongitudeListDto.getLatitude());
+       Optional<BigDecimal> medianLongitude = MedianOfArrayElements.getMedian(latitudeLongitudeListDto.getLongitude());
+
+       if (medianLatitude.isEmpty() || medianLongitude.isEmpty()) {
+           return ListingFeatureCollection.newBuilder().type(GeoJsonEnums.FeatureCollection.toString()).features(featuresCity).build();
+       }
+
+       List<Double> coordinates = BoundingBox.boundingBoxCalculation(medianLatitude.get().doubleValue(), medianLongitude.get().doubleValue(), distanceInMiles);
+       Double minLat = coordinates.getFirst();
+       Double maxLat = coordinates.get(2);
+       Double minLng = coordinates.get(1);
+       Double maxLng = coordinates.get(3);
+
+       // find restaurants in this bounding box and remove all restaurants that are associated with the city client requested
+       List<ListingFeature> featuresWithCity = getGeoJsonFeatureCollectionOfRestaurantsWithinCoordinateBoundingBox(minLng, maxLng, minLat, maxLat );
+
+       List<ListingFeature> featuresFiltered = new ArrayList<>(featuresWithCity.stream().filter(item -> !item.getProperties().getCity().equals(city)).toList());
+
+       // sort featuresFiltered by distance from the median latitude and longitude
+       featuresFiltered.sort((a, b) -> {
+           PointGeometry restaurantGeoJsonGeometryDtoA = a.getGeometry();
+           PointGeometry restaurantGeoJsonGeometryDtoB = b.getGeometry();
+           // calculate distance from user
+           double distanceA = DistanceBwTwoCoordinates.distanceBetweenTwoCoords(medianLatitude.get().doubleValue(),
+                   medianLongitude.get().doubleValue(), restaurantGeoJsonGeometryDtoA.getCoordinates().getLast(),
+                   restaurantGeoJsonGeometryDtoA.getCoordinates().getFirst());
+           double distanceB = DistanceBwTwoCoordinates.distanceBetweenTwoCoords(medianLatitude.get().doubleValue(),
+                   medianLongitude.get().doubleValue(), restaurantGeoJsonGeometryDtoB.getCoordinates().getLast(),
+                   restaurantGeoJsonGeometryDtoB.getCoordinates().getFirst());
+           return Double.compare(distanceA, distanceB);
+       });
+
+       featuresCity.addAll(featuresFiltered);
+
+       featuresCity.forEach(item -> this.setImageUrl(item.getProperties()) );
+
+       return ListingFeatureCollection.newBuilder().type(GeoJsonEnums.FeatureCollection.toString()).features(featuresCity).build();
+   }
+
+    public List<ListingFeature> getGeoJsonFeatureCollectionOfRestaurantsWithinCoordinateBoundingBox(Double minLng, Double maxLng, Double minLat, Double maxLat) {
+        List<ListingFeature> features = listingRepository.getGeoJsonFeatureCollectionOfRestaurantsWithinInCoordinateBoundingBox(minLng, maxLng, minLat, maxLat);
+
+        return features;
+    }
+
+    public LatitudeLongitudeListDto getLatitudeLongitudeListForRestaurantsByCityName(String cityName, String stateAbbreviation, String countryIso) {
+        return zipcodeRepository.getLatitudeLongitudeListForRestaurantsByCityName(cityName, stateAbbreviation, countryIso);
+    }
+
+
     private ListingStatus convertListingStatus(String listingStatus) {
-        System.out.println(listingStatus);
+
         ListingStatus listingStatusEnum = null;
         return switch (listingStatus) {
             case "active" -> listingStatusEnum = ListingStatus.STATUS_ACTIVE;

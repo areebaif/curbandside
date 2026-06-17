@@ -1,5 +1,6 @@
 package com.curbandside.app.Entities;
 
+import com.curbandside.app.Entities.listing.ListingEntity;
 import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
@@ -44,6 +45,10 @@ public class StateEntity {
     @OneToMany(cascade = CascadeType.ALL,
             mappedBy = "state", orphanRemoval = true)
     private List<CityEntity> cities = new ArrayList<>();
+
+    @OneToMany(cascade = CascadeType.ALL,
+            mappedBy = "state", orphanRemoval = true)
+    private List<ListingEntity> listings = new ArrayList<>();
 
     public Long getId() {
         return id;
@@ -110,6 +115,33 @@ public class StateEntity {
 
     public void setStateAbbreviation(String stateAbbreviation) {
         this.stateAbbreviation = stateAbbreviation;
+    }
+
+    public List<ListingEntity> getListings() {
+        return listings;
+    }
+
+    public void setListings(List<ListingEntity> listings) {
+        this.listings = listings;
+    }
+
+    public void addListing(ListingEntity listing) {
+        this.listings.add(listing);
+        listing.setState(this);
+    }
+
+    public void removeListing(ListingEntity listing) {
+        listing.setState(null);
+        this.listings.remove(listing);
+    }
+
+    public void removeListings() {
+        Iterator<ListingEntity> iterator = this.listings.iterator();
+        while (iterator.hasNext()) {
+            ListingEntity listing = iterator.next();
+            listing.setState(null);
+            iterator.remove();
+        }
     }
 
     @Override

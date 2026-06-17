@@ -24,6 +24,9 @@ public class ListingRequestDto {
         @NotNull(message = "Longitude is required")
         private BigDecimal longitude;
 
+        @NotBlank(message = "City and State is required")
+        private String cityState;
+
         public ListingRequestDto() {
         }
 
@@ -75,6 +78,14 @@ public class ListingRequestDto {
                 this.longitude = longitude;
         }
 
+        public @NotBlank(message = "City and State is required") String getCityState() {
+                return cityState;
+        }
+
+        public void setCityState(@NotBlank(message = "City and State is required") String cityState) {
+                this.cityState = cityState;
+        }
+
         @Override
         public String toString() {
                 return "ListingRequestDto{" +
@@ -84,6 +95,7 @@ public class ListingRequestDto {
                         ", status='" + status + '\'' +
                         ", latitude=" + latitude +
                         ", longitude=" + longitude +
+                        ", cityStateAbbreviation='" + cityState + '\'' +
                         '}';
         }
 }

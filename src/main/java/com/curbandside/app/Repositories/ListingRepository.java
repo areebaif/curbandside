@@ -18,6 +18,15 @@ public interface ListingRepository  {
                                                                                   Double userLng,
                                                                                   Integer distanceInMiles);
 
+    List<ListingFeature> getGeoJsonFeatureCollectionOfListingsByCity(String cityName,
+                                                                           String stateAbbreviation,
+                                                                           String countryIso);
+
+    List<ListingFeature> getGeoJsonFeatureCollectionOfRestaurantsWithinInCoordinateBoundingBox(Double minLng,
+                                                                                                  Double maxLng,
+                                                                                                  Double minLat,
+                                                                                                  Double maxLat);
+
 
 
 }

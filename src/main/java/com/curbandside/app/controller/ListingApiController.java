@@ -7,9 +7,6 @@ import com.curbandside.app.services.ListingService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.Map;
-
 @RestController
 @RequestMapping("/api/listings")
 public class ListingApiController {
@@ -21,29 +18,33 @@ public class ListingApiController {
     }
 
     @PostMapping
-    public ResponseEntity<ListingEntity> create(@Valid @RequestBody ListingRequestDto request) {
+    public ResponseEntity<?> create(@Valid @RequestBody ListingRequestDto request) {
 
-        System.out.println(request);
-        System.out.println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
         ListingEntity entity =  listingService.saveListing(request);
-        return ResponseEntity.ok(entity);
+        return ResponseEntity.ok("Successfully created listing with id " + entity.getId());
     }
 
     @GetMapping("/nearby")
     public ListingFeatureCollection nearby(
             @RequestParam double lat,
             @RequestParam double lng) {
-        System.out.println(lat );
-        System.out.println( lng);
-        System.out.println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
         Integer distanceInMiles = 30;
-
         ListingFeatureCollection listings = listingService.getGeoJsonFeatureCollectionOfListingsByClientLocation(lat, lng, distanceInMiles);
-        System.out.println(lat );
-        System.out.println( lng);
-        System.out.println(listings);
-
        return listings;
+    }
+
+    /**
+     * Searches listings by city/text query and returns matching listings
+     * as a GeoJSON FeatureCollection.
+     */
+    @GetMapping("/search")
+    public ListingFeatureCollection search(@RequestParam(name = "q", required = true) String query) {
+
+
+        Integer distanceInMiles = 30;
+        ListingFeatureCollection listings = listingService.getGeoJsonFeatureCollectionOfListingsByCity(query, distanceInMiles);
+        return listings;
+
     }
 
 

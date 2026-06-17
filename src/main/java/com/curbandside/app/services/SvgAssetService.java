@@ -61,7 +61,7 @@ public class SvgAssetService {
      * @return Formatted string data string for HTML image tag src attribute
      */
     public String getSvgForCategory(String category) {
-        System.out.println(category);
+
         if (category == null) {
             return getFallbackDataUrl();
         }
@@ -77,7 +77,7 @@ public class SvgAssetService {
         // 3. Step Two Lookup: Retrieve the raw XML string from cache using filename reference
         String svgContent = null;
         if (fileNameKey != null) {
-            System.out.println(svgCache);
+
             svgContent = svgCache.get(fileNameKey);
 
         }
