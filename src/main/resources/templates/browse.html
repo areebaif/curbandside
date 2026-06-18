@@ -7,6 +7,24 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://api.mapbox.com/mapbox-gl-js/v3.6.0/mapbox-gl.css" rel="stylesheet">
     <script src="https://api.mapbox.com/mapbox-gl-js/v3.6.0/mapbox-gl.js"></script>
+    <style>
+        .listing-popup .mapboxgl-popup-content {
+            padding: 0;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+        }
+        .listing-popup .mapboxgl-popup-close-button {
+            font-size: 18px;
+            padding: 4px 8px;
+            color: #475569;
+        }
+        @media (max-width: 480px) {
+            .listing-popup .mapboxgl-popup-content {
+                max-width: 86vw;
+            }
+        }
+    </style>
 </head>
 <body class="bg-white text-slate-900">
 
@@ -25,15 +43,66 @@
             See What's Near Me
         </h1>
         <form id="search-form" class="flex flex-col sm:flex-row gap-3">
-            <input type="text" id="location-search" name="q"
-                   placeholder="Search a city, neighborhood, or address (e.g. Chicago, IL)"
-                   class="flex-1 border border-slate-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-teal-500">
+            <div class="relative flex-1">
+                <input type="text" id="location-search" name="q" autocomplete="off"
+                       placeholder="Search a city (e.g. Chicago, IL)"
+                       class="w-full border border-slate-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-teal-500">
+                <ul id="autocomplete-list"
+                    class="hidden absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-64 overflow-y-auto z-20 text-left">
+                </ul>
+            </div>
             <button type="submit"
                     class="bg-teal-500 text-white px-6 py-3 rounded-lg font-semibold hover:bg-teal-600 transition-colors">
                 Search
             </button>
         </form>
+        <p class="mt-3 text-center text-xs text-red-700 bg-red-100 inline-block px-3 py-1.5 rounded-full mx-auto" style="display:block; width:fit-content; margin-left:auto; margin-right:auto;">
+            🚧 We're in beta — listings are currently available in the Chicago area only.
+        </p>
         <p id="search-status" class="mt-2 text-sm text-slate-500"></p>
+
+        <div id="category-filters" class="mt-4 flex flex-wrap gap-2 justify-center">
+            <button type="button" data-category="ALL"
+                    class="filter-chip active px-3 py-1.5 rounded-full text-sm font-medium border border-teal-600 bg-teal-600 text-white transition-colors">
+                All
+            </button>
+            <button type="button" data-category="TYPE_SOFA"
+                    class="filter-chip px-3 py-1.5 rounded-full text-sm font-medium border border-teal-600 bg-white text-teal-700 transition-colors">
+                Sofa / Couch
+            </button>
+            <button type="button" data-category="TYPE_TABLE"
+                    class="filter-chip px-3 py-1.5 rounded-full text-sm font-medium border border-teal-600 bg-white text-teal-700 transition-colors">
+                Table
+            </button>
+            <button type="button" data-category="TYPE_CHAIR"
+                    class="filter-chip px-3 py-1.5 rounded-full text-sm font-medium border border-teal-600 bg-white text-teal-700 transition-colors">
+                Chair
+            </button>
+            <button type="button" data-category="TYPE_BED"
+                    class="filter-chip px-3 py-1.5 rounded-full text-sm font-medium border border-teal-600 bg-white text-teal-700 transition-colors">
+                Bed / Frame
+            </button>
+            <button type="button" data-category="TYPE_DRESSER"
+                    class="filter-chip px-3 py-1.5 rounded-full text-sm font-medium border border-teal-600 bg-white text-teal-700 transition-colors">
+                Dresser / Wardrobe
+            </button>
+            <button type="button" data-category="TYPE_DESK"
+                    class="filter-chip px-3 py-1.5 rounded-full text-sm font-medium border border-teal-600 bg-white text-teal-700 transition-colors">
+                Desk
+            </button>
+            <button type="button" data-category="TYPE_SHELVING"
+                    class="filter-chip px-3 py-1.5 rounded-full text-sm font-medium border border-teal-600 bg-white text-teal-700 transition-colors">
+                Shelving
+            </button>
+            <button type="button" data-category="TYPE_APPLIANCE"
+                    class="filter-chip px-3 py-1.5 rounded-full text-sm font-medium border border-teal-600 bg-white text-teal-700 transition-colors">
+                Appliance
+            </button>
+            <button type="button" data-category="TYPE_OTHER"
+                    class="filter-chip px-3 py-1.5 rounded-full text-sm font-medium border border-teal-600 bg-white text-teal-700 transition-colors">
+                Other
+            </button>
+        </div>
     </div>
 </section>
 
@@ -53,15 +122,126 @@
     // Injected from application.properties via the controller
     mapboxgl.accessToken = /*[[${mapboxAccessToken}]]*/ 'YOUR_MAPBOX_ACCESS_TOKEN';
 
+    const initialLat = /*[[${lat}]]*/ 41.8781;
+    const initialLng = /*[[${lng}]]*/ -87.6298;
+
     const map = new mapboxgl.Map({
         container: 'map',
         style: 'mapbox://styles/mapbox/streets-v12',
-        center: [-87.6298, 41.8781], // default: Chicago
-        zoom: 11
+        center: [initialLng, initialLat],
+        zoom: 12
     });
 
     const SOURCE_ID = 'listings';
     const LAYER_ID = 'listings-points';
+
+    // Human-readable labels for enum-style properties
+    const CATEGORY_LABELS = {
+        TYPE_SOFA: 'Sofa / Couch',
+        TYPE_TABLE: 'Table',
+        TYPE_CHAIR: 'Chair',
+        TYPE_BED: 'Bed / Frame',
+        TYPE_DRESSER: 'Dresser / Wardrobe',
+        TYPE_DESK: 'Desk',
+        TYPE_SHELVING: 'Shelving',
+        TYPE_APPLIANCE: 'Appliance',
+        TYPE_OTHER: 'Other'
+    };
+
+    const CONDITION_LABELS = {
+        CONDITION_GREAT_BARELY_USED: 'Great — barely used',
+        CONDITION_GOOD_NORMAL_WEAR: 'Good — normal wear',
+        CONDITION_FAIR_VISIBLE_WEAR: 'Fair — visible wear',
+        CONDITION_ROUGH_TAKE_IT_OR_LEAVE_IT: 'Rough — take it or leave it'
+    };
+
+    const STATUS_LABELS = {
+        STATUS_ACTIVE: 'Available',
+        STATUS_CLAIMED: 'Claimed'
+    };
+
+    function buildPopupHtml(props) {
+        const title = props.title || 'Untitled item';
+        const category = CATEGORY_LABELS[props.category] || props.category || '';
+        const condition = CONDITION_LABELS[props.condition] || props.condition || '';
+        const status = STATUS_LABELS[props.status] || props.status || '';
+        const imageUrl = props.coverUrl;
+        const listingId = props.listingId;
+        const isClaimed = props.status === 'STATUS_CLAIMED';
+
+        const statusBadgeClass = isClaimed
+            ? 'bg-slate-200 text-slate-600'
+            : 'bg-teal-100 text-teal-700';
+
+        const claimButtonHtml = isClaimed
+            ? `<button disabled style="width:100%; margin-top:10px; padding:10px 0; border-radius:10px; border:none; background:#e2e8f0; color:#64748b; font-weight:600; font-size:14px; cursor:not-allowed;">Already Claimed</button>`
+            : `<button id="claim-btn-${listingId}" onclick="claimListing('${listingId}', this)" style="width:100%; margin-top:10px; padding:10px 0; border-radius:10px; border:none; background:#14b8a6; color:#fff; font-weight:600; font-size:14px; cursor:pointer;">Claim This Item</button>`;
+
+        return `
+            <div style="width: min(290px, 82vw); font-family: inherit;">
+                <div style="width:100%; height:150px; overflow:hidden; border-radius:14px 14px 0 0; background:linear-gradient(135deg,#f0fdfa,#f1f5f9); display:flex; align-items:center; justify-content:center; padding:18px; box-sizing:border-box;">
+                    <img src="${imageUrl}" alt="${title}" style="max-width:100%; max-height:100%; object-fit:contain; display:block;">
+                </div>
+                <div style="padding:14px 16px 16px;">
+                    <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:8px; margin-bottom:8px;">
+                        <h3 style="font-weight:700; font-size:16px; line-height:1.3; margin:0; color:#0f172a;">${title}</h3>
+                        <span class="${statusBadgeClass}" style="font-size:11px; font-weight:600; padding:3px 9px; border-radius:9999px; white-space:nowrap; margin-top:2px;">${status}</span>
+                    </div>
+                    <div style="display:flex; flex-direction:column; gap:3px; margin-bottom:4px;">
+                        ${category ? `<p style="font-size:13px; color:#475569; margin:0; display:flex; align-items:center; gap:6px;"><span style="opacity:0.6;">📦</span>${category}</p>` : ''}
+                        ${condition ? `<p style="font-size:13px; color:#475569; margin:0; display:flex; align-items:center; gap:6px;"><span style="opacity:0.6;">✨</span>${condition}</p>` : ''}
+                    </div>
+                    ${claimButtonHtml}
+                </div>
+            </div>
+        `;
+    }
+
+    let currentGeojson = { type: 'FeatureCollection', features: [] };
+
+    window.claimListing = async function (listingId, buttonEl) {
+        const originalText = buttonEl.textContent;
+        buttonEl.disabled = true;
+        buttonEl.textContent = 'Claiming...';
+
+        try {
+            const res = await fetch(`/api/listings/${listingId}/claim`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+
+            if (!res.ok) {
+                throw new Error('Claim request failed');
+            }
+
+            // Update the in-memory GeoJSON so the marker/label/popup reflect the new status
+            currentGeojson.features.forEach((feature) => {
+                if (String(feature.properties.listingId) === String(listingId)) {
+                    feature.properties.status = 'STATUS_CLAIMED';
+                }
+            });
+
+            const source = map.getSource(SOURCE_ID);
+            if (source) {
+                source.setData(currentGeojson);
+            }
+
+            buttonEl.textContent = 'Claimed!';
+            buttonEl.style.background = '#e2e8f0';
+            buttonEl.style.color = '#64748b';
+            buttonEl.style.cursor = 'not-allowed';
+
+            // Close the popup shortly after confirming the claim
+            setTimeout(() => {
+                document.querySelectorAll('.mapboxgl-popup').forEach((p) => p.remove());
+            }, 800);
+        } catch (err) {
+            console.error(err);
+            buttonEl.disabled = false;
+            buttonEl.textContent = originalText;
+            alert('Unable to claim this item right now. Please try again.');
+        }
+    };
 
     map.on('load', () => {
         map.addSource(SOURCE_ID, {
@@ -69,43 +249,135 @@
             data: { type: 'FeatureCollection', features: [] }
         });
 
+        // Halo layer underneath for extra visibility/contrast against any map style
+        map.addLayer({
+            id: LAYER_ID + '-halo',
+            type: 'circle',
+            source: SOURCE_ID,
+            paint: {
+                'circle-radius': 16,
+                'circle-color': [
+                    'case',
+                    ['==', ['get', 'status'], 'STATUS_CLAIMED'], '#64748b',
+                    '#0d9488'
+                ],
+                'circle-opacity': 0.18
+            }
+        });
+
         map.addLayer({
             id: LAYER_ID,
             type: 'circle',
             source: SOURCE_ID,
             paint: {
-                'circle-radius': 7,
-                'circle-color': '#14b8a6', // teal-500
-                'circle-stroke-width': 2,
+                'circle-radius': 11,
+                'circle-color': [
+                    'case',
+                    ['==', ['get', 'status'], 'STATUS_CLAIMED'], '#64748b',
+                    '#0d9488'
+                ],
+                'circle-stroke-width': 3,
                 'circle-stroke-color': '#ffffff'
             }
         });
 
-        // Click a point to show a popup with listing details
+        // Title label shown beneath each marker
+        map.addLayer({
+            id: LAYER_ID + '-label',
+            type: 'symbol',
+            source: SOURCE_ID,
+            layout: {
+                'text-field': ['get', 'title'],
+                'text-size': 12,
+                'text-offset': [0, 1.4],
+                'text-anchor': 'top',
+                'text-font': ['Open Sans Semibold', 'Arial Unicode MS Bold'],
+                'text-max-width': 8,
+                'text-allow-overlap': false
+            },
+            paint: {
+                'text-color': '#0f172a',
+                'text-halo-color': '#ffffff',
+                'text-halo-width': 1.5
+            }
+        });
+
+        // Click a point to show a mobile-friendly popup card with listing details
         map.on('click', LAYER_ID, (e) => {
             const feature = e.features[0];
             const props = feature.properties;
             const coords = feature.geometry.coordinates.slice();
 
-            new mapboxgl.Popup()
+            new mapboxgl.Popup({ maxWidth: 'none', className: 'listing-popup' })
                 .setLngLat(coords)
-                .setHTML(`
-                    <div class="text-sm">
-                        <strong>${props.title ?? ''}</strong><br>
-                        ${props.condition ? props.condition + '<br>' : ''}
-                        ${props.address ?? ''}
-                    </div>
-                `)
+                .setHTML(buildPopupHtml(props))
                 .addTo(map);
         });
 
+        // Tap-friendly cursor feedback (desktop hover, harmless on mobile)
         map.on('mouseenter', LAYER_ID, () => {
             map.getCanvas().style.cursor = 'pointer';
         });
         map.on('mouseleave', LAYER_ID, () => {
             map.getCanvas().style.cursor = '';
         });
+
+        // Load nearby listings as soon as the map is ready
+        loadNearbyListings(initialLat, initialLng);
     });
+
+    let currentCategory = 'ALL';
+
+    function applyMapFilter() {
+        const filterExpr = currentCategory === 'ALL'
+            ? null
+            : ['==', ['get', 'category'], currentCategory];
+
+        map.setFilter(LAYER_ID, filterExpr);
+        map.setFilter(LAYER_ID + '-halo', filterExpr);
+        map.setFilter(LAYER_ID + '-label', filterExpr);
+    }
+
+    document.querySelectorAll('.filter-chip').forEach((chip) => {
+        chip.addEventListener('click', () => {
+            document.querySelectorAll('.filter-chip').forEach((c) => {
+                c.classList.remove('active', 'bg-teal-600', 'text-white');
+                c.classList.add('bg-white', 'text-teal-700');
+            });
+            chip.classList.add('active', 'bg-teal-600', 'text-white');
+            chip.classList.remove('bg-white', 'text-teal-700');
+
+            currentCategory = chip.dataset.category;
+            applyMapFilter();
+        });
+    });
+
+    async function loadNearbyListings(lat, lng) {
+        const statusEl = document.getElementById('search-status');
+
+        try {
+            const res = await fetch(`/api/listings/nearby?lat=${lat}&lng=${lng}`);
+            if (!res.ok) {
+                throw new Error('Failed to load nearby listings');
+            }
+            const geojson = await res.json();
+            currentGeojson = geojson;
+
+            const source = map.getSource(SOURCE_ID);
+            if (source) {
+                source.setData(geojson);
+            }
+            applyMapFilter();
+
+            const count = geojson.features ? geojson.features.length : 0;
+            statusEl.textContent = count > 0
+                ? `Showing ${count} item(s) near you`
+                : 'No items found near you yet.';
+        } catch (err) {
+            console.error(err);
+            statusEl.textContent = 'Unable to load nearby items right now.';
+        }
+    }
 
     async function search(query) {
         const statusEl = document.getElementById('search-status');
@@ -118,12 +390,14 @@
                 throw new Error('Search request failed');
             }
             const geojson = await res.json();
+            currentGeojson = geojson;
 
             // Update the map source with the new results
             const source = map.getSource(SOURCE_ID);
             if (source) {
                 source.setData(geojson);
             }
+            applyMapFilter();
 
             const count = geojson.features ? geojson.features.length : 0;
             statusEl.textContent = `Found ${count} item(s) for "${query}"`;
@@ -145,6 +419,123 @@
         e.preventDefault();
         const query = document.getElementById('location-search').value.trim();
         if (query) search(query);
+    });
+
+    // ----- Autocomplete with debounce -----
+    const searchInput = document.getElementById('location-search');
+    const autocompleteList = document.getElementById('autocomplete-list');
+    let debounceTimer = null;
+    let activeIndex = -1;
+
+    function hideAutocomplete() {
+        autocompleteList.classList.add('hidden');
+        autocompleteList.innerHTML = '';
+        activeIndex = -1;
+    }
+
+    function renderSuggestions(suggestions) {
+        autocompleteList.innerHTML = '';
+
+        if (!suggestions || suggestions.length === 0) {
+            hideAutocomplete();
+            return;
+        }
+
+        suggestions.forEach((item, index) => {
+            const li = document.createElement('li');
+            li.dataset.index = index;
+            li.className = 'px-4 py-2 cursor-pointer hover:bg-teal-50 text-sm text-slate-700 border-b border-slate-100 last:border-b-0';
+            li.textContent = item.label || item.name || item;
+
+            li.addEventListener('click', () => {
+                selectSuggestion(item);
+            });
+
+            autocompleteList.appendChild(li);
+        });
+
+        autocompleteList.classList.remove('hidden');
+    }
+
+    function selectSuggestion(item) {
+        const label = item.label || item.name || item;
+        searchInput.value = label;
+        hideAutocomplete();
+        search(label);
+    }
+
+    async function fetchSuggestions(query) {
+        try {
+            const res = await fetch(`/api/places/autocomplete?q=${encodeURIComponent(query)}`);
+            if (!res.ok) {
+                throw new Error('Autocomplete request failed');
+            }
+            const data = await res.json();
+            // Expecting either an array directly, or { suggestions: [...] }
+            const suggestions = Array.isArray(data) ? data : (data.suggestions || []);
+            renderSuggestions(suggestions);
+        } catch (err) {
+            console.error(err);
+            hideAutocomplete();
+        }
+    }
+
+    searchInput.addEventListener('input', () => {
+        const query = searchInput.value.trim();
+
+        clearTimeout(debounceTimer);
+
+        if (query.length < 2) {
+            hideAutocomplete();
+            return;
+        }
+
+        debounceTimer = setTimeout(() => {
+            fetchSuggestions(query);
+        }, 300);
+    });
+
+    // Keyboard navigation: arrow keys + enter
+    searchInput.addEventListener('keydown', (e) => {
+        const items = autocompleteList.querySelectorAll('li');
+        if (items.length === 0 || autocompleteList.classList.contains('hidden')) {
+            return;
+        }
+
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            activeIndex = Math.min(activeIndex + 1, items.length - 1);
+            updateActiveItem(items);
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            activeIndex = Math.max(activeIndex - 1, 0);
+            updateActiveItem(items);
+        } else if (e.key === 'Enter') {
+            if (activeIndex >= 0 && items[activeIndex]) {
+                e.preventDefault();
+                items[activeIndex].click();
+            }
+        } else if (e.key === 'Escape') {
+            hideAutocomplete();
+        }
+    });
+
+    function updateActiveItem(items) {
+        items.forEach((item, idx) => {
+            if (idx === activeIndex) {
+                item.classList.add('bg-teal-50');
+            } else {
+                item.classList.remove('bg-teal-50');
+            }
+        });
+        items[activeIndex].scrollIntoView({ block: 'nearest' });
+    }
+
+    // Hide dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+        if (!searchInput.contains(e.target) && !autocompleteList.contains(e.target)) {
+            hideAutocomplete();
+        }
     });
 </script>
 

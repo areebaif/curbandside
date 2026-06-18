@@ -17,25 +17,34 @@
 </nav>
 
 <!-- Hero -->
-<section class="bg-teal-50 px-6 py-20 text-center">
-    <p class="text-sm font-semibold tracking-widest text-teal-600 mb-4">
-        NO DROP-OFFS. NO MIDDLEMEN. NO DRIVING.
-    </p>
-    <h1 class="text-4xl sm:text-6xl font-extrabold leading-tight text-slate-900">
-        Too good to trash.<br><span class="text-teal-500">Too heavy to haul.</span>
-    </h1>
-    <p class="mt-6 text-lg text-slate-600 max-w-2xl mx-auto">
-        The old way of leaving stuff on the curb, but now people can actually find it.
-    </p>
-    <div class="mt-10 flex flex-col sm:flex-row justify-center items-center gap-4">
-        <a href="#post-item"
-           class="w-full sm:w-auto text-center bg-teal-500 text-white px-6 py-3 rounded-full font-semibold hover:bg-teal-600 transition-colors">
-            Post Something for Free
-        </a>
-        <a href="#"
-           class="w-full sm:w-auto text-center bg-white text-teal-700 border border-teal-600 px-6 py-3 rounded-full font-semibold hover:bg-teal-50 transition-colors">
-            See What's Near Me
-        </a>
+<section class="bg-teal-50 px-6 py-20">
+    <div class="max-w-6xl mx-auto grid sm:grid-cols-2 gap-12 items-center">
+        <div class="text-center sm:text-left">
+            <p class="text-sm font-semibold tracking-widest text-teal-600 mb-4">
+                NO DROP-OFFS. NO MIDDLEMEN. NO DRIVING.
+            </p>
+            <h1 class="text-4xl sm:text-6xl font-extrabold leading-tight text-slate-900">
+                Too good to trash.<br><span class="text-teal-500">Too heavy to haul.</span>
+            </h1>
+            <p class="mt-6 text-lg text-slate-600 max-w-2xl mx-auto sm:mx-0">
+                The old way of leaving stuff on the curb, but now people can actually find it.
+            </p>
+            <div class="mt-10 flex flex-col sm:flex-row justify-center sm:justify-start items-center gap-4">
+                <a href="#post-item"
+                   class="w-full sm:w-auto text-center bg-teal-500 text-white px-6 py-3 rounded-full font-semibold hover:bg-teal-600 transition-colors">
+                    Post Something for Free
+                </a>
+                <button type="button" id="see-near-me"
+                        class="w-full sm:w-auto text-center bg-white text-teal-700 border border-teal-600 px-6 py-3 rounded-full font-semibold hover:bg-teal-50 transition-colors">
+                    See What's Near Me
+                </button>
+            </div>
+            <p id="geo-error" class="mt-4 text-sm text-red-600 max-w-md mx-auto sm:mx-0 hidden"></p>
+        </div>
+
+        <div class="flex items-center justify-center p-6 sm:p-8">
+            <img src="/images/hero-illustration.svg" alt="Illustration of a sofa with a FREE sign on a lawn, with a neighbor walking toward it" style="max-width:560px; width:100%;">
+        </div>
     </div>
 </section>
 
@@ -119,13 +128,15 @@
             <p class="mt-2 text-lg font-semibold text-teal-600">What's sitting on your curb?</p>
         </div>
 
-        <form class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 sm:p-8 space-y-5" method="post" action="#">
+        <form id="post-item-form" class="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 sm:p-8 space-y-5">
             <div class="text-center mb-2">
-                <h3 class="text-xl font-bold text-slate-900">Post your item</h3>
+                <h3 class="text-xl font-bold text-teal-700">Post your item</h3>
                 <p class="mt-2 text-slate-600 text-sm">
                     No account needed. Takes under 60 seconds. Your neighbors will see it the moment you hit post.
                 </p>
             </div>
+
+            <input type="hidden" id="itemStatus" name="status" value="active">
 
             <div>
                 <label for="title" class="block text-sm font-semibold text-slate-700 mb-1">What is it?</label>
@@ -135,35 +146,64 @@
             </div>
 
             <div>
-                <label for="condition" class="block text-sm font-semibold text-slate-700 mb-1">Condition (optional)</label>
-                <input type="text" id="condition" name="condition"
-                       placeholder="e.g. Good condition, minor scratches"
-                       class="w-full border border-slate-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500">
+                <label for="itemCategory" class="block text-sm font-semibold text-slate-700 mb-1">Category</label>
+                <select id="itemCategory" name="category" required
+                        class="w-full border border-slate-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500">
+                    <option value="sofa">Sofa / Couch</option>
+                    <option value="table">Table</option>
+                    <option value="chair">Chair</option>
+                    <option value="bed">Bed / Frame</option>
+                    <option value="dresser">Dresser / Wardrobe</option>
+                    <option value="desk">Desk</option>
+                    <option value="shelving">Shelving</option>
+                    <option value="appliance">Appliance</option>
+                    <option value="other">Other</option>
+                </select>
             </div>
 
             <div>
-                <label for="location" class="block text-sm font-semibold text-slate-700 mb-1">Location</label>
+                <label for="itemCondition" class="block text-sm font-semibold text-slate-700 mb-1">Condition</label>
+                <select id="itemCondition" name="condition" required
+                        class="w-full border border-slate-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500">
+                    <option>Great — barely used</option>
+                    <option>Good — normal wear</option>
+                    <option>Fair — visible wear</option>
+                    <option>Rough — take it or leave it</option>
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-sm font-semibold text-slate-700 mb-1">Location</label>
                 <div class="flex flex-col sm:flex-row gap-2">
-                    <input type="text" id="location" name="location" required
-                           placeholder="Enter an address"
-                           class="flex-1 border border-slate-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500">
+                    <div class="relative flex-1">
+                        <input type="text" id="itemCityState" name="cityState" required autocomplete="off"
+                               placeholder="City, State (e.g. Chicago, IL)"
+                               class="w-full border border-slate-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500">
+                        <ul id="city-autocomplete-list"
+                            class="hidden absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-56 overflow-y-auto z-20 text-left">
+                        </ul>
+                    </div>
                     <button type="button" id="drop-pin"
-                            class="flex items-center justify-center gap-1 border border-teal-600 text-teal-700 px-4 py-2 rounded-lg font-semibold hover:bg-teal-50 transition-colors whitespace-nowrap">
+                            class="sm:w-auto flex items-center justify-center gap-1 border border-teal-600 text-teal-700 px-4 py-2 rounded-lg font-semibold hover:bg-teal-50 transition-colors whitespace-nowrap">
                         📍 Drop Pin
                     </button>
+                    <p id="pin-dropped-info" class="hidden sm:w-auto flex items-center justify-center text-sm text-teal-700 font-medium px-4 py-2 whitespace-nowrap">
+                        📍 Pin dropped
+                    </p>
                 </div>
-            </div>
-
-            <div>
-                <label for="photo" class="block text-sm font-semibold text-slate-700 mb-1">Snap a photo</label>
-                <input type="file" id="photo" name="photo" accept="image/*"
-                       class="w-full border border-slate-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500 file:mr-4 file:py-1 file:px-3 file:rounded-md file:border-0 file:bg-teal-50 file:text-teal-700 file:font-semibold">
+                <p id="pin-error" class="hidden text-center text-sm text-red-600 mt-1">
+                    Please drop a pin to share your item's location before posting.
+                </p>
+                <input type="hidden" id="itemLat" name="latitude">
+                <input type="hidden" id="itemLng" name="longitude">
             </div>
 
             <button type="submit"
                     class="w-full bg-teal-500 text-white px-6 py-3 rounded-full font-semibold hover:bg-teal-600 transition-colors">
                 Post It — Free, No Account Needed
             </button>
+
+            <p id="post-status" class="text-center text-sm mt-2"></p>
         </form>
     </div>
 </section>
@@ -172,6 +212,8 @@
 <footer class="text-center text-sm text-slate-400 py-8 border-t border-slate-100">
     &copy; 2026 Curb &amp; Side
 </footer>
+
+<script src="/js/index.js"></script>
 
 </body>
 </html>

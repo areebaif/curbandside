@@ -1,0 +1,255 @@
+package com.curbandside.app.services;
+
+import com.curbandside.app.DTO.GeoJson.*;
+import com.curbandside.app.DTO.ListingRequestDto;
+import com.curbandside.app.Entities.CityEntity;
+import com.curbandside.app.Entities.CountryEntity;
+import com.curbandside.app.Entities.StateEntity;
+import com.curbandside.app.Entities.listing.ListingCategory;
+import com.curbandside.app.Entities.listing.ListingCondition;
+import com.curbandside.app.Entities.listing.ListingEntity;
+import com.curbandside.app.Entities.listing.ListingStatus;
+import com.curbandside.app.Repositories.*;
+import com.curbandside.app.utils.BoundingBox;
+import com.curbandside.app.utils.DistanceBwTwoCoordinates;
+import com.curbandside.app.utils.GeoJsonEnums;
+import com.curbandside.app.utils.MedianOfArrayElements;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
+
+@Service
+public class ListingService {
+    private  final SvgAssetService svgAssetService;
+    private final ListingRepository listingRepository;
+    private final ZipcodeRepository zipcodeRepository;
+    private final StateRepository stateRepository;
+    private final CityRepository cityRepository;
+    private final CountryRepository countryRepository;
+
+
+    public ListingService(ListingRepository listingRepositoryImpl, SvgAssetService svgAssetService, ZipcodeRepository zipcodeRepositoryImpl, StateRepository stateRepositoryImpl, CityRepository cityRepositoryImpl, CountryRepository countryRepositoryImpl) {
+        this.listingRepository = listingRepositoryImpl;
+        this.svgAssetService = svgAssetService;
+        this.zipcodeRepository = zipcodeRepositoryImpl;
+        this.stateRepository = stateRepositoryImpl;
+        this.cityRepository = cityRepositoryImpl;
+        this.countryRepository = countryRepositoryImpl;
+
+    }
+
+    @Transactional
+    @Modifying
+    public ListingEntity saveListing(ListingRequestDto listingRequestDto) {
+        String[] cityAndState = Arrays.stream(listingRequestDto.getCityState().split(","))
+                .map(String::trim)
+                .toArray(String[]::new);
+        String city = cityAndState[0];
+        String stateAbbreviation = cityAndState[1];
+        String countryIso = "USA";
+
+        CountryEntity country = countryRepository.findEntityByIso(countryIso).orElseThrow(() -> new IllegalStateException("Unable to find country with provided iso"));
+
+        StateEntity state = stateRepository.getEntityByStateAbbreviationAndCountryId(stateAbbreviation, country.getId()).orElseThrow(() -> new IllegalStateException("Unable to find state with provided name"));
+
+        CityEntity cityEntity = cityRepository.getEntityByNameStateIdAndCountryId(city, state.getId(), 1L).orElseThrow(() -> new IllegalStateException("Unable to find city with provided name"));;
+
+        ListingEntity listing = new ListingEntity();
+        listing.setTitle(listingRequestDto.getTitle());
+        listing.setListingCondition(this.convertListingCondition(listingRequestDto.getCondition()));
+        listing.setListingCategory(this.convertListingCategory(listingRequestDto.getCategory()));
+        listing.setListingStatus(this.convertListingStatus(listingRequestDto.getStatus()));
+        listing.setLatitude(listingRequestDto.getLatitude());
+        listing.setLongitude(listingRequestDto.getLongitude());
+        listing.setCountry(country);
+        listing.setCity(cityEntity);
+        listing.setState(state);
+        return  listingRepository.save(listing);
+    }
+
+    @Transactional
+    @Modifying
+   public void claimListing(Long id) {
+      ListingEntity entity =   listingRepository.getListingEntityById(id).orElseThrow(() -> new IllegalStateException("Unable to find listing with provided id"));
+      entity.setListingStatus(ListingStatus.STATUS_CLAIMED);
+        listingRepository.claimListing(entity);
+   }
+
+
+    public ListingFeatureCollection getGeoJsonFeatureCollectionOfListingsByClientLocation(Double latitude, Double longitude, Integer distanceInMiles) {
+
+        List<Double> coordinates = BoundingBox.boundingBoxCalculation(latitude, longitude, distanceInMiles);
+        Double minLat = coordinates.getFirst();
+        Double maxLat = coordinates.get(2);
+        Double minLng = coordinates.get(1);
+        Double maxLng = coordinates.get(3);
+
+
+        List<ListingFeature> features = listingRepository.getGeoJsonFeatureCollectionOfListingsByClientLocation(
+                minLat,
+                maxLat,
+                minLng,
+                maxLng,
+                latitude,
+                longitude,
+                distanceInMiles);
+        // custom sort by distance from user
+        features.sort((a, b) -> {
+            PointGeometry restaurantGeoJsonGeometryDtoA = a.getGeometry();
+            PointGeometry restaurantGeoJsonGeometryDtoB = b.getGeometry();
+            // calculate distance from user
+            double distanceA = DistanceBwTwoCoordinates.distanceBetweenTwoCoords(latitude,
+                    longitude, restaurantGeoJsonGeometryDtoA.getCoordinates().getLast(),
+                    restaurantGeoJsonGeometryDtoA.getCoordinates().getFirst());
+            double distanceB = DistanceBwTwoCoordinates.distanceBetweenTwoCoords(latitude,
+                    longitude, restaurantGeoJsonGeometryDtoB.getCoordinates().getLast(),
+                    restaurantGeoJsonGeometryDtoB.getCoordinates().getFirst());
+            return Double.compare(distanceA, distanceB);
+        });
+
+        features.forEach(item -> this.setImageUrl(item.getProperties()) );
+
+        return ListingFeatureCollection
+                .newBuilder()
+                .type(GeoJsonEnums.FeatureCollection.toString())
+                .features(features).build();
+    }
+
+   public ListingFeatureCollection getGeoJsonFeatureCollectionOfListingsByCity(String query,Integer distanceInMiles) {
+       String[] cityAndState = Arrays.stream(query.split(","))
+               .map(String::trim)
+               .toArray(String[]::new);
+       String city = cityAndState[0];
+       String stateAbbreviation = cityAndState[1];
+       String countryIso = "USA";
+
+       CountryEntity country = countryRepository.findEntityByIso(countryIso).orElseThrow(() -> new IllegalStateException("Unable to find country with provided iso"));
+
+       StateEntity state = stateRepository.getEntityByStateAbbreviationAndCountryId(stateAbbreviation, country.getId()).orElseThrow(() -> new IllegalStateException("Unable to find state with provided name"));
+
+       CityEntity cityEntity = cityRepository.getEntityByNameStateIdAndCountryId(city, state.getId(), 1L).orElseThrow(() -> new IllegalStateException("Unable to find city with provided name"));;
+
+       List<ListingFeature> featuresCity = listingRepository.getGeoJsonFeatureCollectionOfListingsByCity(cityEntity.getName(), stateAbbreviation, countryIso);
+       // 2. Add restaurants near to city
+       LatitudeLongitudeListDto latitudeLongitudeListDto = getLatitudeLongitudeListForRestaurantsByCityName(cityEntity.getName(), stateAbbreviation, countryIso);
+       Optional<BigDecimal> medianLatitude = MedianOfArrayElements.getMedian(latitudeLongitudeListDto.getLatitude());
+       Optional<BigDecimal> medianLongitude = MedianOfArrayElements.getMedian(latitudeLongitudeListDto.getLongitude());
+
+       if (medianLatitude.isEmpty() || medianLongitude.isEmpty()) {
+           return ListingFeatureCollection.newBuilder().type(GeoJsonEnums.FeatureCollection.toString()).features(featuresCity).build();
+       }
+
+       List<Double> coordinates = BoundingBox.boundingBoxCalculation(medianLatitude.get().doubleValue(), medianLongitude.get().doubleValue(), distanceInMiles);
+       Double minLat = coordinates.getFirst();
+       Double maxLat = coordinates.get(2);
+       Double minLng = coordinates.get(1);
+       Double maxLng = coordinates.get(3);
+
+       // find restaurants in this bounding box and remove all restaurants that are associated with the city client requested
+       List<ListingFeature> featuresWithCity = getGeoJsonFeatureCollectionOfRestaurantsWithinCoordinateBoundingBox(minLng, maxLng, minLat, maxLat );
+
+       List<ListingFeature> featuresFiltered = new ArrayList<>(featuresWithCity.stream().filter(item -> !item.getProperties().getCity().equals(city)).toList());
+
+       // sort featuresFiltered by distance from the median latitude and longitude
+       featuresFiltered.sort((a, b) -> {
+           PointGeometry restaurantGeoJsonGeometryDtoA = a.getGeometry();
+           PointGeometry restaurantGeoJsonGeometryDtoB = b.getGeometry();
+           // calculate distance from user
+           double distanceA = DistanceBwTwoCoordinates.distanceBetweenTwoCoords(medianLatitude.get().doubleValue(),
+                   medianLongitude.get().doubleValue(), restaurantGeoJsonGeometryDtoA.getCoordinates().getLast(),
+                   restaurantGeoJsonGeometryDtoA.getCoordinates().getFirst());
+           double distanceB = DistanceBwTwoCoordinates.distanceBetweenTwoCoords(medianLatitude.get().doubleValue(),
+                   medianLongitude.get().doubleValue(), restaurantGeoJsonGeometryDtoB.getCoordinates().getLast(),
+                   restaurantGeoJsonGeometryDtoB.getCoordinates().getFirst());
+           return Double.compare(distanceA, distanceB);
+       });
+
+       featuresCity.addAll(featuresFiltered);
+
+       featuresCity.forEach(item -> this.setImageUrl(item.getProperties()) );
+
+       return ListingFeatureCollection.newBuilder().type(GeoJsonEnums.FeatureCollection.toString()).features(featuresCity).build();
+   }
+
+    public List<ListingFeature> getGeoJsonFeatureCollectionOfRestaurantsWithinCoordinateBoundingBox(Double minLng, Double maxLng, Double minLat, Double maxLat) {
+        List<ListingFeature> features = listingRepository.getGeoJsonFeatureCollectionOfRestaurantsWithinInCoordinateBoundingBox(minLng, maxLng, minLat, maxLat);
+
+        return features;
+    }
+
+    public LatitudeLongitudeListDto getLatitudeLongitudeListForRestaurantsByCityName(String cityName, String stateAbbreviation, String countryIso) {
+        return zipcodeRepository.getLatitudeLongitudeListForRestaurantsByCityName(cityName, stateAbbreviation, countryIso);
+    }
+
+
+    private ListingStatus convertListingStatus(String listingStatus) {
+
+        ListingStatus listingStatusEnum = null;
+        return switch (listingStatus) {
+            case "active" -> listingStatusEnum = ListingStatus.STATUS_ACTIVE;
+            case "claimed" -> listingStatusEnum = ListingStatus.STATUS_CLAIMED;
+            default -> throw new IllegalStateException("Unexpected value: " + listingStatus);
+        };
+    }
+
+    private ListingCategory convertListingCategory(String listingCategory) {
+        ListingCategory listingCategoryEnum = null;
+
+        return switch (listingCategory) {
+            case "sofa" -> listingCategoryEnum = ListingCategory.TYPE_SOFA;
+            case "table" -> listingCategoryEnum = ListingCategory.TYPE_TABLE;
+            case "chair" -> listingCategoryEnum = ListingCategory.TYPE_CHAIR;
+            case "bed" -> listingCategoryEnum = ListingCategory.TYPE_BED;
+            case "dresser" -> listingCategoryEnum = ListingCategory.TYPE_DRESSER;
+            case "desk" -> listingCategoryEnum = ListingCategory.TYPE_DESK;
+            case "shelving" -> listingCategoryEnum = ListingCategory.TYPE_SHELVING;
+            case "appliance" -> listingCategoryEnum = ListingCategory.TYPE_APPLIANCE;
+            default -> throw new IllegalStateException("Unexpected value: " + listingCategory);
+        };
+    }
+
+    private ListingCondition convertListingCondition(String listingCondition) {
+        ListingCondition listingCategoryEnum = null;
+        return switch (listingCondition) {
+            case "Great — barely used" -> listingCategoryEnum = ListingCondition.CONDITION_GREAT_BARELY_USED;
+            case "Good — normal wear" -> listingCategoryEnum = ListingCondition.CONDITION_GOOD_NORMAL_WEAR;
+            case "Fair — visible wear" -> listingCategoryEnum = ListingCondition.CONDITION_FAIR_VISIBLE_WEAR;
+            case "Rough — take it or leave it" -> listingCategoryEnum = ListingCondition.CONDITION_ROUGH_TAKE_IT_OR_LEAVE_IT;
+            default -> throw new IllegalStateException("Unexpected value: " + listingCondition);
+        };
+    }
+
+
+
+//    private void addSvgToFeature(String category) {
+//        switch (category) {
+//            case "TYPE_SOFA" -> System.out.println("Monday");
+//            case "TYPE_TABLE" -> System.out.println("Mid-week day"); // Multiple values per case
+//            case "TYPE_BED" -> System.out.println("Friday");
+//            case "TYPE_CHAIR" -> System.out.println("Friday");
+//            case "TYPE_DRESSER" -> System.out.println("Friday");
+//            case "TYPE_DESK" -> System.out.println("Friday");
+//            case "TYPE_SHELVING" -> System.out.println("Friday");
+//            case "TYPE_APPLIANCE" -> System.out.println("Friday");
+//            case "TYPE_OTHER" -> System.out.println("Friday");
+//
+//            default -> System.out.println("Weekend");
+//
+//        }
+//    }
+
+    private void setImageUrl(ListingPropertiesForGeoJson properties) {
+        String category = properties.getCategory();
+
+        String svgUrl =  svgAssetService.getSvgForCategory(category);
+        properties.setCoverUrl(svgUrl);
+
+    }
+
+}
