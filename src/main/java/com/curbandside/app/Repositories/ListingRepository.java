@@ -4,6 +4,7 @@ import com.curbandside.app.DTO.GeoJson.ListingFeature;
 import com.curbandside.app.Entities.listing.ListingEntity;
 
 import java.util.List;
+import java.util.Optional;
 
 
 public interface ListingRepository  {
@@ -26,6 +27,10 @@ public interface ListingRepository  {
                                                                                                   Double maxLng,
                                                                                                   Double minLat,
                                                                                                   Double maxLat);
+
+    Optional<ListingEntity> getListingEntityById(Long id);
+
+    void claimListing(ListingEntity listingEntity);
 
 
 

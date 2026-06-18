@@ -73,6 +73,15 @@ public class ListingService {
         return  listingRepository.save(listing);
     }
 
+    @Transactional
+    @Modifying
+   public void claimListing(Long id) {
+      ListingEntity entity =   listingRepository.getListingEntityById(id).orElseThrow(() -> new IllegalStateException("Unable to find listing with provided id"));
+      entity.setListingStatus(ListingStatus.STATUS_CLAIMED);
+        listingRepository.claimListing(entity);
+   }
+
+
     public ListingFeatureCollection getGeoJsonFeatureCollectionOfListingsByClientLocation(Double latitude, Double longitude, Integer distanceInMiles) {
 
         List<Double> coordinates = BoundingBox.boundingBoxCalculation(latitude, longitude, distanceInMiles);

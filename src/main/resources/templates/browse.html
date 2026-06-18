@@ -45,7 +45,7 @@
         <form id="search-form" class="flex flex-col sm:flex-row gap-3">
             <div class="relative flex-1">
                 <input type="text" id="location-search" name="q" autocomplete="off"
-                       placeholder="Search a city, neighborhood, or address (e.g. Chicago, IL)"
+                       placeholder="Search a city (e.g. Chicago, IL)"
                        class="w-full border border-slate-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-teal-500">
                 <ul id="autocomplete-list"
                     class="hidden absolute left-0 right-0 top-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-64 overflow-y-auto z-20 text-left">
@@ -56,6 +56,9 @@
                 Search
             </button>
         </form>
+        <p class="mt-3 text-center text-xs text-red-700 bg-red-100 inline-block px-3 py-1.5 rounded-full mx-auto" style="display:block; width:fit-content; margin-left:auto; margin-right:auto;">
+            🚧 We're in beta — listings are currently available in the Chicago area only.
+        </p>
         <p id="search-status" class="mt-2 text-sm text-slate-500"></p>
 
         <div id="category-filters" class="mt-4 flex flex-wrap gap-2 justify-center">
@@ -172,7 +175,7 @@
 
         const claimButtonHtml = isClaimed
             ? `<button disabled style="width:100%; margin-top:10px; padding:10px 0; border-radius:10px; border:none; background:#e2e8f0; color:#64748b; font-weight:600; font-size:14px; cursor:not-allowed;">Already Claimed</button>`
-            : `<button onclick="sendPrompt && sendPrompt('Claim listing ${listingId}')" style="width:100%; margin-top:10px; padding:10px 0; border-radius:10px; border:none; background:#14b8a6; color:#fff; font-weight:600; font-size:14px; cursor:pointer;">Claim This Item</button>`;
+            : `<button id="claim-btn-${listingId}" onclick="claimListing('${listingId}', this)" style="width:100%; margin-top:10px; padding:10px 0; border-radius:10px; border:none; background:#14b8a6; color:#fff; font-weight:600; font-size:14px; cursor:pointer;">Claim This Item</button>`;
 
         return `
             <div style="width: min(290px, 82vw); font-family: inherit;">
@@ -193,6 +196,52 @@
             </div>
         `;
     }
+
+    let currentGeojson = { type: 'FeatureCollection', features: [] };
+
+    window.claimListing = async function (listingId, buttonEl) {
+        const originalText = buttonEl.textContent;
+        buttonEl.disabled = true;
+        buttonEl.textContent = 'Claiming...';
+
+        try {
+            const res = await fetch(`/api/listings/${listingId}/claim`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+
+            if (!res.ok) {
+                throw new Error('Claim request failed');
+            }
+
+            // Update the in-memory GeoJSON so the marker/label/popup reflect the new status
+            currentGeojson.features.forEach((feature) => {
+                if (String(feature.properties.listingId) === String(listingId)) {
+                    feature.properties.status = 'STATUS_CLAIMED';
+                }
+            });
+
+            const source = map.getSource(SOURCE_ID);
+            if (source) {
+                source.setData(currentGeojson);
+            }
+
+            buttonEl.textContent = 'Claimed!';
+            buttonEl.style.background = '#e2e8f0';
+            buttonEl.style.color = '#64748b';
+            buttonEl.style.cursor = 'not-allowed';
+
+            // Close the popup shortly after confirming the claim
+            setTimeout(() => {
+                document.querySelectorAll('.mapboxgl-popup').forEach((p) => p.remove());
+            }, 800);
+        } catch (err) {
+            console.error(err);
+            buttonEl.disabled = false;
+            buttonEl.textContent = originalText;
+            alert('Unable to claim this item right now. Please try again.');
+        }
+    };
 
     map.on('load', () => {
         map.addSource(SOURCE_ID, {
@@ -232,6 +281,27 @@
             }
         });
 
+        // Title label shown beneath each marker
+        map.addLayer({
+            id: LAYER_ID + '-label',
+            type: 'symbol',
+            source: SOURCE_ID,
+            layout: {
+                'text-field': ['get', 'title'],
+                'text-size': 12,
+                'text-offset': [0, 1.4],
+                'text-anchor': 'top',
+                'text-font': ['Open Sans Semibold', 'Arial Unicode MS Bold'],
+                'text-max-width': 8,
+                'text-allow-overlap': false
+            },
+            paint: {
+                'text-color': '#0f172a',
+                'text-halo-color': '#ffffff',
+                'text-halo-width': 1.5
+            }
+        });
+
         // Click a point to show a mobile-friendly popup card with listing details
         map.on('click', LAYER_ID, (e) => {
             const feature = e.features[0];
@@ -265,6 +335,7 @@
 
         map.setFilter(LAYER_ID, filterExpr);
         map.setFilter(LAYER_ID + '-halo', filterExpr);
+        map.setFilter(LAYER_ID + '-label', filterExpr);
     }
 
     document.querySelectorAll('.filter-chip').forEach((chip) => {
@@ -290,6 +361,7 @@
                 throw new Error('Failed to load nearby listings');
             }
             const geojson = await res.json();
+            currentGeojson = geojson;
 
             const source = map.getSource(SOURCE_ID);
             if (source) {
@@ -318,6 +390,7 @@
                 throw new Error('Search request failed');
             }
             const geojson = await res.json();
+            currentGeojson = geojson;
 
             // Update the map source with the new results
             const source = map.getSource(SOURCE_ID);

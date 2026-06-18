@@ -18,19 +18,19 @@ public class ListingApiController {
     }
 
     @PostMapping
-    public ResponseEntity<?> create(@Valid @RequestBody ListingRequestDto request) {
+    public ResponseEntity<String> create(@Valid @RequestBody ListingRequestDto request) {
 
         ListingEntity entity =  listingService.saveListing(request);
         return ResponseEntity.ok("Successfully created listing with id " + entity.getId());
     }
 
     @GetMapping("/nearby")
-    public ListingFeatureCollection nearby(
+    public ResponseEntity<ListingFeatureCollection> nearby(
             @RequestParam double lat,
             @RequestParam double lng) {
-        Integer distanceInMiles = 30;
+        Integer distanceInMiles = 50;
         ListingFeatureCollection listings = listingService.getGeoJsonFeatureCollectionOfListingsByClientLocation(lat, lng, distanceInMiles);
-       return listings;
+       return ResponseEntity.ok(listings);
     }
 
     /**
@@ -38,13 +38,21 @@ public class ListingApiController {
      * as a GeoJSON FeatureCollection.
      */
     @GetMapping("/search")
-    public ListingFeatureCollection search(@RequestParam(name = "q", required = true) String query) {
-
-
-        Integer distanceInMiles = 30;
+    public ResponseEntity<ListingFeatureCollection> search(@RequestParam(name = "q", required = true) String query) {
+        Integer distanceInMiles = 50;
         ListingFeatureCollection listings = listingService.getGeoJsonFeatureCollectionOfListingsByCity(query, distanceInMiles);
-        return listings;
+        return ResponseEntity.ok(listings);
 
+    }
+
+    @PostMapping("/{id}/claim")
+    public ResponseEntity<Void> claim(@PathVariable("id") Long id) {
+
+        listingService.claimListing(id);
+
+        // TODO: look up the listing by id and update its status to STATUS_CLAIMED here
+
+        return ResponseEntity.ok().build();
     }
 
 
